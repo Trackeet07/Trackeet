@@ -1,15 +1,15 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-const morgan = require('morgan');
-const connectDB = require('./database/db'); 
-const userRouter = require('./routes/user.routes');
+import express, { json } from 'express';
+import mongoose from 'mongoose';
+import { config } from 'dotenv';
+import morgan from 'morgan';
+import connectDB from './database/db.js'; 
+import userRouter from './routes/user.routes.js';
 
 
 const app = express();
-app.use(express.json());
+app.use(json());
 app.use(morgan('dev'));
-dotenv.config();
+config();
 
 const port = process.env.PORT || 3000;
 

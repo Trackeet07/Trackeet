@@ -1,10 +1,11 @@
-const bcrypt = require("bcryptjs");
-const cloudinary = require('../public/cloudinary.js');
-const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require("uuid");
-const User = require("../models/userModels.js");
+import bcrypt from "bcryptjs";
+import cloudinary from '../public/cloudinary.js';
+import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
+import User from '../models/userModels.js';
+
 // const { emailSender } = require('../middleware/emailotp.js');
-exports.personalSignup = async (req, res) => {
+export const personalSignup = async (req, res) => {
     try {
         const { personalName, password, email, country } = req.body;
 
@@ -50,7 +51,7 @@ console.log(newUser);
     }
 };
 
-exports.bussinessSignup = async (req, res) => {
+export const bussinessSignup = async (req, res) => {
     try {
         const { personalName, businessName, role, industry, password, email, country } = req.body;
 
@@ -71,7 +72,7 @@ exports.bussinessSignup = async (req, res) => {
             return res.status(409).json({ message: "User already exists" });
         }
 
-        const otp = Math.floor(100000 + Math.random() * 900000);
+        // const otp = Math.floor(100000 + Math.random() * 900000);
 
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -97,65 +98,38 @@ console.log(newUser);
         return res.status(500).json({ message: "Error saving user", error: err.message });
     }
 };
-exports.login = async (req, res) => {
+
+export const forgotPassword = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Please input your email and password" });
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: "Please input your email" });
     }
 
     const user = await User.findOne({ email });
-
     if (!user) {
-      return res.status(404).json({ message: "User Not Found, Please Signup" });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    const correctPassword = await bcrypt.compare(password, user.password);
-    if (!correctPassword) {
-      return res.status(400).json({ message: "Incorrect Password" });
-    }
+    const token = uuidv4();
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '30s' });
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour expiration
 
-    return res
-      .status(200)
-      .json({ message: "User is Logged In Successfully", user, token });
+    await user.save();
+
+    // Uncomment the email function and make sure to include token in the email
+    // await emailResetPassword(email, token);
+
+    return res.status(200).json({ message: "Check your email to reset your password" });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "Error Logging In User", err });
+    return res.status(500).json({ message: "Error saving user", err });
   }
 };
 
 
-  exports.forgotPassword = async (req, res) => {
-    try {
-      const { email } = req.body;
-      if (!email) {
-        return res.status(400).json({ message: "Please input your email" });
-      }
-  
-      const user = await User.findOne({ email });
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-  
-      const token = uuidv4();
-  
-      user.resetPasswordToken = token;
-      await user.save();
-  
-      // await emailResetPassword(email, token);
-  
-      return res.status(200).json({ message: "Check your email to reset your password", });
-    } catch (err) {
-      console.error(err);
-      return res.status(500).json({ message: "Error saving user", err });
-    }
-  };
-
-  exports.resetPassword = async (req, res) => {
+  export const resetPassword = async (req, res) => {
     try {
       const { token } = req.params;
       const { newPassword, confirmPassword } = req.body;
@@ -187,7 +161,7 @@ exports.login = async (req, res) => {
     }
   };
 
-  exports.uploadPicture = async (req, res) => {
+  export const uploadPicture = async (req, res) => {
     try {
     
         const user = await User.findById(req.params.id);
@@ -215,7 +189,7 @@ exports.login = async (req, res) => {
 };
 
 
-  exports.deleteUser = async (req, res) => {
+  export const deleteUser = async (req, res) => {
     try {
       const { id } = req.query;
   
@@ -229,5 +203,36 @@ exports.login = async (req, res) => {
       });
     } catch (error) {
       res.status(500).json({ error, message: "Error Deleting User" });
+    }
+  };
+
+  export const login = async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res
+          .status(400)
+          .json({ message: "Please input your email and password" });
+      }
+  
+      const user = await User.findOne({ email });
+  
+      if (!user) {
+        return res.status(404).json({ message: "User Not Found, Please Signup" });
+      }
+  
+      const correctPassword = await bcrypt.compare(password, user.password);
+      if (!correctPassword) {
+        return res.status(400).json({ message: "Incorrect Password" });
+      }
+  
+      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '30s' });
+  
+      return res
+        .status(200)
+        .json({ message: "User is Logged In Successfully", user, token });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Error Logging In User", err });
     }
   };

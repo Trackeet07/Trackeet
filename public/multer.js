@@ -1,12 +1,12 @@
-const multer = require('multer');
-const path = require('path');
+import multer, { diskStorage } from 'multer';
+import { extname } from 'path';
 
 // Multer config for images and videos
-const storage = multer.diskStorage({
+const storage = diskStorage({
   fileFilter: (req, file, cb) => {
     const allowedExtensions = ['.jpg', '.jpeg', '.png', '.mp4', '.mov', '.avi'];
 
-    let ext = path.extname(file.originalname);
+    let ext = extname(file.originalname);
 
     // Check if the file extension is allowed
     if (allowedExtensions.includes(ext.toLowerCase())) {
@@ -19,4 +19,4 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-module.exports = upload;
+export default upload;
