@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
-const userSchema = new mongoose.Schema({
+const expenseSchema = new mongoose.Schema({
     expenseName: {
         type: String,
         required: true
@@ -17,24 +17,19 @@ const userSchema = new mongoose.Schema({
         type: Date,
         required: true
     },
-    role: {
+    link: {
         type: String
     },
-    industry: {
+    description: {
         type: String
     },
-    businessName: {
+    attachment: {
         type: String
-    },
-    resetPasswordToken: {
-        type: String,
-      },
-
-},
-{
+    }
+}, {
     versionKey: false
 });
 
-const User = mongoose.model("User", userSchema);
+const Expense = mongoose.model("Expense", expenseSchema);
 
-module.exports = User;
+export default Expense;

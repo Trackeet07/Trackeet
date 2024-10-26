@@ -30,6 +30,9 @@ const userSchema = new Schema({
     resetPasswordToken: {
         type: String,
       },
+    image: {
+        type: String,
+      }
 
 },
 {

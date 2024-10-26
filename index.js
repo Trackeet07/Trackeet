@@ -4,6 +4,8 @@ import { config } from 'dotenv';
 import morgan from 'morgan';
 import connectDB from './database/db.js'; 
 import userRouter from './routes/user.routes.js';
+import expenseRouter from './routes/expense.routes.js';
+import budgetRouter from './routes/budget.routes.js';
 
 
 const app = express();
@@ -18,6 +20,8 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/v1/user', userRouter);
+app.use('/api/v1/expense', expenseRouter);
+app.use('/api/v1/budget', budgetRouter);
 
 app.listen(port, async () =>{
     try {
