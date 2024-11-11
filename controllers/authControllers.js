@@ -1,54 +1,53 @@
 import bcrypt from "bcryptjs";
 import cloudinary from '../public/cloudinary.js';
+import crypto from 'crypto';
+
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import User from '../models/userModels.js';
+import { sendAccountDeletedEmail, sendPasswordChangedEmail, sendPasswordResetRequestEmail, sendVerificationEmail } from "../middleware/verifyEmil.js";
 
-// const { emailSender } = require('../middleware/emailotp.js');
+
 export const personalSignup = async (req, res) => {
-    try {
-        const { personalName, password, email, country } = req.body;
+  try {
+      const { personalName, password, email, country } = req.body;
 
-        if (!personalName || !email || !password || !country) {
-            return res.status(400).json({ message: "Please provide all required fields" });
-        }
-        const passwordRegex = /^(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-        if (!passwordRegex.test(password)) {
-            return res.status(400).json({
-                message: "Password must be at least 8 characters long and must contain one special character.."
-            });
-        }
+      if (!personalName || !email || !password || !country) {
+          return res.status(400).json({ message: "Please provide all required fields" });
+      }
 
-        const existingUser = await User.findOne({ email });
-        console.log(existingUser);
+      const passwordRegex = /^(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (!passwordRegex.test(password)) {
+          return res.status(400).json({
+              message: "Password must be at least 8 characters long and contain one special character."
+          });
+      }
 
-        if (existingUser) {
-            return res.status(409).json({ message: "User already exists" });
-        }
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+          return res.status(409).json({ message: "User already exists" });
+      }
 
-        const otp = Math.floor(100000 + Math.random() * 900000);
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const verificationToken = crypto.randomBytes(32).toString('hex'); // Generate token
 
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
+      const newUser = new User({
+          personalName,
+          password: hashedPassword,
+          email,
+          country,
+          verificationToken,
+          isVerified: false
+      });
 
-        const newUser = new User({
-            personalName,
-            password: hashedPassword,
-            email,
-            country
-        });
-console.log(newUser);
-  
-        await newUser.save();
+      await newUser.save();
+      await sendVerificationEmail(email, personalName, verificationToken);
 
-        // await emailSender(newUser);
-        // await sendSms(newUser);
-
-        return res.status(201).json({ message: "User saved successfully", newUser });
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ message: "Error saving user", error: err.message });
-    }
+      return res.status(201).json({ message: "User registered successfully. Please check your email to verify your account." });
+  } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: "Error saving user", error: err.message });
+  }
 };
 
 export const bussinessSignup = async (req, res) => {
@@ -89,8 +88,9 @@ export const bussinessSignup = async (req, res) => {
 console.log(newUser);
   
         await newUser.save();
+        const verificationToken = crypto.randomBytes(32).toString('hex'); // Generate token
 
-        // await emailSender(newUser);
+        await sendVerificationEmail(email, businessName, verificationToken);
 
         return res.status(201).json({ message: "User saved successfully", newUser });
     } catch (err) {
@@ -118,8 +118,7 @@ export const forgotPassword = async (req, res) => {
 
     await user.save();
 
-    // Uncomment the email function and make sure to include token in the email
-    // await emailResetPassword(email, token);
+    await sendPasswordResetRequestEmail(email, personalName, token); 
 
     return res.status(200).json({ message: "Check your email to reset your password" });
   } catch (err) {
@@ -153,6 +152,7 @@ export const forgotPassword = async (req, res) => {
       user.password = hashedPassword;
   
       await user.save();
+      await sendPasswordChangedEmail(email, personalName)
   
       return res.status(200).json({ message: "Password reset successfully" });
     } catch (err) {
@@ -196,7 +196,14 @@ export const forgotPassword = async (req, res) => {
       const deletedUser = await User.findByIdAndDelete({
         _id: id,
       });
-  
+      if (!deletedUser) {
+        return res.status(404).json({ message: "User not found" });
+      };
+      
+      // await cloudinary.uploader.destroy(deletedUser.image); // Delete the image from cloudinary
+
+      // await sendAccountDeletedEmail(email, personalName);
+
       res.status(200).json({
         message: "User Deleted Successfully",
         deletedUser,
@@ -206,33 +213,52 @@ export const forgotPassword = async (req, res) => {
     }
   };
 
-  export const login = async (req, res) => {
+  export const verifyEmail = async (req, res) => {
     try {
-      const { email, password } = req.body;
-      if (!email || !password) {
-        return res
-          .status(400)
-          .json({ message: "Please input your email and password" });
-      }
-  
-      const user = await User.findOne({ email });
-  
-      if (!user) {
-        return res.status(404).json({ message: "User Not Found, Please Signup" });
-      }
-  
-      const correctPassword = await bcrypt.compare(password, user.password);
-      if (!correctPassword) {
-        return res.status(400).json({ message: "Incorrect Password" });
-      }
-  
-      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '30s' });
-  
-      return res
-        .status(200)
-        .json({ message: "User is Logged In Successfully", user, token });
-    } catch (err) {
-      console.error(err);
-      return res.status(500).json({ message: "Error Logging In User", err });
+        const { token } = req.query;
+
+        const user = await User.findOne({ verificationToken: token });
+
+        if (!user) {
+            return res.status(400).json({ message: "Invalid or expired verification token" });
+        }
+
+        user.isVerified = true;
+        user.verificationToken = null; // Clear the token after verification
+        await user.save();
+
+        return res.status(200).json({ message: "Email verified successfully" });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Verification failed", error: error.message });
     }
-  };
+};
+
+// authController.js
+export const login = async (req, res) => {
+  try {
+      const { email, password } = req.body;
+
+      const user = await User.findOne({ email });
+
+      if (!user) {
+          return res.status(400).json({ message: "Invalid email or password" });
+      }
+
+      if (!user.isVerified) {
+          return res.status(403).json({ message: "Please verify your email to log in" });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password);
+
+      if (!isMatch) {
+          return res.status(400).json({ message: "Invalid email or password" });
+      }
+
+      // Generate token and respond with success if needed
+
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Login failed", error: error.message });
+  }
+};
