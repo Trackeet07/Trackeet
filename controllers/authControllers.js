@@ -47,7 +47,7 @@ export const personalSignup = catchAsync(async (req, res, next) => {
             message: error.message
         })
     }
-
+      
     console.log("Value", value)
       // Check if the email is already registered
       const existingUser = await User.findOne({ email: req.body.email });
@@ -66,7 +66,10 @@ export const personalSignup = catchAsync(async (req, res, next) => {
       const newUser = await User.create(req.body);
 
       const savedUser = await newUser.save();
+      
       try {
+        const firstName = savedUser.personalName.split(/[, ]+/)[0]
+        console.log("FIRST NAME=", firstName)
         const url = `${req.protocol}://${req.get("host")}/api/user/verifyEmail?email=${savedUser.email}&token=${verificationToken}`
         const currentDir = path.dirname(new URL(import.meta.url).pathname);
     
@@ -85,7 +88,7 @@ export const personalSignup = catchAsync(async (req, res, next) => {
            throw new Error('Missing required data for email template');
          }
         const emailTemplate = htmlTemplate
-       .replace(/{{personalName}}/g, savedUser.personalName)
+       .replace(/{{personalName}}/g, firstName)
        .replace(/{{email}}/g, savedUser.email)
        .replace(/{{url}}/g, url);
     console.log("FirstName", savedUser.personalName)
@@ -98,7 +101,7 @@ export const personalSignup = catchAsync(async (req, res, next) => {
         })
     }
 
-      return res.status(201).json({ message: "User registered successfully. Please check your email to verify your account." });
+      return res.status(httpStatus.CREATED).json({ message: `You're almost there! We've sent an email verificaion link to ${savedUser.email}.` });
 });
 
 export const businessSignup = catchAsync(async (req, res) => {
@@ -180,6 +183,7 @@ export const forgotUserPassword = catchAsync( async (req, res) => {
      await user.save();
     
      try {
+      const firstName = user.personalName.split(/[, ]+/)[0]
       const url = `${req.protocol}://${req.get("host")}/api/user/resetPassword?token=${resetToken}`;
        const currentDir = path.dirname(new URL(import.meta.url).pathname);
    
@@ -190,7 +194,7 @@ export const forgotUserPassword = catchAsync( async (req, res) => {
         console.log('Normalized current directory:', normalizedCurrentDir);
         
         // Resolve the path to 'emailTemplate.html'
-        const templatePath = path.join(normalizedCurrentDir, "../utils/templates/passwordReset.html");
+        const templatePath = path.join(normalizedCurrentDir, "../utils/templates/forgotPassword.html");
         
         // Debug the resolved template path
         console.log('Resolved template path:', templatePath);
@@ -198,7 +202,7 @@ export const forgotUserPassword = catchAsync( async (req, res) => {
         // Read the HTML template synchronously
         const htmlTemplate = fs.readFileSync(templatePath, "utf8");
         const emailTemplate = htmlTemplate
-       .replace(/{{firstName}}/g, user.firstName)
+       .replace(/{{personalName}}/g, firstName)
        .replace(/{{email}}/g, user.email)  
        .replace(/{{url}}/g, url)
    
@@ -247,7 +251,7 @@ export const forgotBusinessPassword = catchAsync( async (req, res) => {
       console.log('Normalized current directory:', normalizedCurrentDir);
       
       // Resolve the path to 'emailTemplate.html'
-      const templatePath = path.join(normalizedCurrentDir, "../../../utils/templates/passwordReset.html");
+      const templatePath = path.join(normalizedCurrentDir, "../../../utils/templates/forgotPassword.html");
       
       // Debug the resolved template path
       console.log('Resolved template path:', templatePath);
@@ -309,8 +313,9 @@ export const resetUserPassword = catchAsync(async (req, res, next) => {
   user.password = hashedPassword;
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
-  await user.save()
+  const savedUser = await user.save()
  try {
+  const firstName = savedUser.personalName.split(/[, ]+/)[0]
   const url = `${req.protocol}://${req.get("host")}/api/user/login`;
    const currentDir = path.dirname(new URL(import.meta.url).pathname);
 
@@ -321,7 +326,7 @@ export const resetUserPassword = catchAsync(async (req, res, next) => {
     console.log('Normalized current directory:', normalizedCurrentDir);
     
     // Resolve the path to 'emailTemplate.html'
-    const templatePath = path.join(normalizedCurrentDir, "../utils/templates/passwordChanged.html");
+    const templatePath = path.join(normalizedCurrentDir, "../utils/templates/passwordReset.html");
     
     // Debug the resolved template path
     console.log('Resolved template path:', templatePath);
@@ -329,7 +334,7 @@ export const resetUserPassword = catchAsync(async (req, res, next) => {
     // Read the HTML template synchronously
     const htmlTemplate = fs.readFileSync(templatePath, "utf8");
     const emailTemplate = htmlTemplate
-   .replace(/{{firstName}}/g, user.firstName)
+   .replace(/{{personalName}}/g, firstName)
    .replace(/{{email}}/g, user.email)  
    .replace(/{{url}}/g, url)
 
@@ -447,31 +452,58 @@ export const resetBusinessPassword = catchAsync(async (req, res, next) => {
 });
 
 
-  export const deleteUser = async (req, res) => {
-    try {
-      const { id } = req.query;
-  
-      const deletedUser = await User.findByIdAndDelete({
-        _id: id,
-      });
+  export const deleteUser = catchAsync (async (req, res) => {
+      const userId = req.params.id
+  console.log("HRTR")
+      const deletedUser = await User.findByIdAndDelete(userId)
+
+      console.log("DELETED:", deletedUser)
       if (!deletedUser) {
-        return res.status(404).json({ message: "User not found" });
+        return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
       };
       
-      // await cloudinary.uploader.destroy(deletedUser.image); // Delete the image from cloudinary
+      //await cloudinary.uploader.destroy(deletedUser.image); // Delete the image from cloudinary
 
       // await sendAccountDeletedEmail(email, personalName);
-
-      res.status(200).json({
+      try {
+        const firstName = deletedUser.personalName.split(/[, ]+/)[0]
+        const url = `${req.protocol}://${req.get("host")}/api/user/login`
+        const currentDir = path.dirname(new URL(import.meta.url).pathname);
+    
+        // Normalize the path to remove any leading slash and avoid path issues on Windows
+        const normalizedCurrentDir = currentDir.replace(/^\/([A-Za-z])/, '$1');  // Fix leading slash for Windows
+        
+        // Debug the computed normalizedCurrentDir to ensure it's correct
+        console.log('Normalized current directory:', normalizedCurrentDir);
+        
+        // Resolve the path to 'emailTemplate.html'
+        const templatePath = path.join(normalizedCurrentDir, "../utils/templates/deleted.html");
+        
+        // Read the HTML template synchronously
+        const htmlTemplate = fs.readFileSync(templatePath, "utf8");
+        if (!firstName || !deletedUser.email || !url) {
+           throw new Error('Missing required data for email template');
+         }
+        const emailTemplate = htmlTemplate
+        .replace(/{{personalName}}/g, firstName)
+        await emailService.sendEmail(emailTemplate, "Welcome", deletedUser.email);
+        console.log("URL", url)
+     }catch (error) {
+          // Ensure no further response is sent after failure in the try block
+          if (!res.headersSent) {
+            return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+                error: error.message,
+                message: "Internal server error"
+            });
+        }}
+      res.status(httpStatus.OK).json({
         message: "User Deleted Successfully",
         deletedUser,
       });
-    } catch (error) {
-      res.status(500).json({ error, message: "Error Deleting User" });
-    }
-  };
+  });
 
   export const verifyUserEmail =catchAsync(async (req, res) => {
+
         const { email, token } = req.query;
         console.log("Token", token)
         if(!(token && email)) {
@@ -504,10 +536,9 @@ export const resetBusinessPassword = catchAsync(async (req, res, next) => {
         user.isVerified = true;
         user.confirmEmailToken = undefined; // Clear the token after verification
         const savedUser = await user.save();
-
-        createSendToken(savedUser, 200, res);
         try {
-          const url = `${req.protocol}://${req.get("host")}/api/trackeet`
+          const firstName = savedUser.personalName.split(/[, ]+/)[0]
+          const url = `${req.protocol}://${req.get("host")}/api/user/login`
           const currentDir = path.dirname(new URL(import.meta.url).pathname);
       
           // Normalize the path to remove any leading slash and avoid path issues on Windows
@@ -521,11 +552,11 @@ export const resetBusinessPassword = catchAsync(async (req, res, next) => {
           
           // Read the HTML template synchronously
           const htmlTemplate = fs.readFileSync(templatePath, "utf8");
-          if (!user.firstName || !user.email || !url) {
+          if (!firstName || !savedUser.email || !url) {
              throw new Error('Missing required data for email template');
            }
           const emailTemplate = htmlTemplate
-         .replace(/{{firstName}}/g, user.firstName)
+         .replace(/{{personalName}}/g, firstName)
          .replace(/{{email}}/g, user.email)
          .replace(/{{url}}/g, url);
       console.log("FirstName", user.firstName)
@@ -539,6 +570,7 @@ export const resetBusinessPassword = catchAsync(async (req, res, next) => {
                   message: "Internal server error"
               });
           }}
+          return res.status(httpStatus.OK).json({ message: `Email Successfully Verified.` });
          
 });
 

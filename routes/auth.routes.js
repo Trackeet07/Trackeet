@@ -1,5 +1,5 @@
 import express, { json } from 'express';
-import { personalSignup, businessSignup, loginUser, loginBusiness,   resetUserPassword, resetBusinessPassword, forgotUserPassword, forgotBusinessPassword,  uploadPicture, deleteUser, verifyUserEmail, verifyBusinessEmail } from '../controllers/authControllers.js';
+import { personalSignup, protect, businessSignup, loginUser, loginBusiness,   resetUserPassword, resetBusinessPassword, forgotUserPassword, forgotBusinessPassword,  uploadPicture, deleteUser, verifyUserEmail, verifyBusinessEmail } from '../controllers/authControllers.js';
 
 import upload from '../public/multer.js';
 
@@ -16,8 +16,8 @@ router.post('/reset-user', resetUserPassword );
 router.post('/reset-business', resetBusinessPassword );
 router.post('/forgot-user-password', forgotUserPassword );
 router.post('/forgot-business-password', forgotBusinessPassword );
-router.put('/picture/:id', upload.single("picture"), uploadPicture );
-router.delete('/delete', deleteUser);
+router.post('/picture/:id', upload.single("picture"), uploadPicture );
+router.delete('/delete/:id', deleteUser);
 
 
 export default router;

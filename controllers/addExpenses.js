@@ -1,7 +1,7 @@
 import { expenseSchema } from '../validation/validation.js';
 import Expense from '../models/expensesModels.js';
 import catchAsync from '../middleware/catchAsync.js';
-
+import httpStatus from 'http-status';
 // Controller function to add an expense
 export const addExpense = catchAsync(async (req, res) => {
         const { error, value } = expenseSchema.validate(req.body, {abortEarly: false})
@@ -17,7 +17,7 @@ export const addExpense = catchAsync(async (req, res) => {
 
         req.body= { ...req.body, attachment: attachment }
         // Create a new expense
-        const newExpense = new Expense.create(req.body);
+        const newExpense = await Expense.create(req.body);
 
         // Save to database 
         const savedExpense = await newExpense.save();
