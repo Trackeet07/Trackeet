@@ -1,192 +1,450 @@
-import bcrypt from "bcryptjs";
 import cloudinary from '../public/cloudinary.js';
 import crypto from 'crypto';
-
+import path from "path";
+import fs from "fs";
+import httpStatus from 'http-status';
+import { passwordHash, passwordCompare } from '../middleware/hashing.js';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import User from '../models/userModels.js';
-import { sendAccountDeletedEmail, sendPasswordChangedEmail, sendPasswordResetRequestEmail, sendVerificationEmail } from "../middleware/verifyEmil.js";
+import Business from '../models/userModels.js';
+import catchAsync from '../middleware/catchAsync.js';
+//import { sendVerificationEmail } from "../utils/email/email-sender.js"
+import { emailService, tokenService } from "../services/index.js";
+import { registerSchema, businessSchema, resetPasswordSchema, loginSchema } from '../validation/validation.js';
+import winston from 'winston';
+import { promisify } from 'util';
+const { error } = winston;
 
 
-export const personalSignup = async (req, res) => {
-  try {
-      const { personalName, password, email, country } = req.body;
+const signToken = id => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN || "1h"   // 24 hours
+  })
+}
 
-      if (!personalName || !email || !password || !country) {
-          return res.status(400).json({ message: "Please provide all required fields" });
+const createSendToken = (user, statusCode, res) => {
+  const token = signToken(user._id)
+res.status(statusCode).json({
+     status: "success",
+     token,
+     data: {
+         user
+      
       }
+  })
+}
 
-      const passwordRegex = /^(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-      if (!passwordRegex.test(password)) {
-          return res.status(400).json({
-              message: "Password must be at least 8 characters long and contain one special character."
-          });
-      }
 
-      const existingUser = await User.findOne({ email });
+
+export const personalSignup = catchAsync(async (req, res, next) => {
+
+      const { error, value } = registerSchema.validate(req.body, {abortEarly: false})
+
+      if(error) {
+        console.log("Errors", error)
+        return res.status(httpStatus.NOT_FOUND).json({
+            message: error.message
+        })
+    }
+
+    console.log("Value", value)
+      // Check if the email is already registered
+      const existingUser = await User.findOne({ email: req.body.email });
       if (existingUser) {
-          return res.status(409).json({ message: "User already exists" });
+         return res.status(httpStatus.BAD_REQUEST).json({
+             message: "User already exists"
+         })
       }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const verificationToken = crypto.randomBytes(32).toString('hex'); // Generate token
+    const verificationToken = tokenService.generateVerifyEmailToken() // Generate token
+    const hashedPassword =  await passwordHash(req.body.password);
+    req.body = { ...req.body, password:hashedPassword, confirmEmailToken:verificationToken };
 
-      const newUser = new User({
-          personalName,
-          password: hashedPassword,
-          email,
-          country,
-          verificationToken,
-          isVerified: false
-      });
+    console.log("Verification Token", verificationToken)
 
-      await newUser.save();
-      await sendVerificationEmail(email, personalName, verificationToken);
+      const newUser = await User.create(req.body);
+
+      const savedUser = await newUser.save();
+      try {
+        const url = `${req.protocol}://${req.get("host")}/api/user/verifyEmail?email=${savedUser.email}&token=${verificationToken}`
+        const currentDir = path.dirname(new URL(import.meta.url).pathname);
+    
+        // Normalize the path to remove any leading slash and avoid path issues on Windows
+        const normalizedCurrentDir = currentDir.replace(/^\/([A-Za-z])/, '$1');  // Fix leading slash for Windows
+        
+        // Debug the computed normalizedCurrentDir to ensure it's correct
+        console.log('Normalized current directory:', normalizedCurrentDir);
+        
+        // Resolve the path to 'emailTemplate.html'
+        const templatePath = path.join(normalizedCurrentDir, "../utils/templates/emailVerify.html");
+        
+        // Read the HTML template synchronously
+        const htmlTemplate = fs.readFileSync(templatePath, "utf8");
+        if (!savedUser.personalName || !savedUser.email || !url) {
+           throw new Error('Missing required data for email template');
+         }
+        const emailTemplate = htmlTemplate
+       .replace(/{{personalName}}/g, savedUser.personalName)
+       .replace(/{{email}}/g, savedUser.email)
+       .replace(/{{url}}/g, url);
+    console.log("FirstName", savedUser.personalName)
+        await emailService.sendEmail(emailTemplate, "Verify Email", savedUser.email);
+        console.log("URL", url)
+    }catch(error) {
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+         error: error.message,
+         message: "Internal server error"
+        })
+    }
 
       return res.status(201).json({ message: "User registered successfully. Please check your email to verify your account." });
-  } catch (err) {
-      console.error(err);
-      return res.status(500).json({ message: "Error saving user", error: err.message });
-  }
-};
+});
 
-export const bussinessSignup = async (req, res) => {
-    try {
-        const { personalName, businessName, role, industry, password, email, country } = req.body;
+export const businessSignup = catchAsync(async (req, res) => {
+  const { error, value } = businessSchema.validate(req.body, {abortEarly: false})
 
-        if (!personalName || !businessName || !role || !industry || !email || !password || !country) {
-            return res.status(400).json({ message: "Please provide all required fields" });
-        }
-        const passwordRegex = /^(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-        if (!passwordRegex.test(password)) {
-            return res.status(400).json({
-                message: "Password must be at least 8 characters long and must contain one special character."
-            });
+        if (error) {
+          console.log("Errors", error)
+          return res.status(httpStatus.BAD_REQUEST).json({ message: "Please provide all required fields" });
         }
 
-        const existingUser = await User.findOne({ email });
-        console.log(existingUser);
+        const existingBusiness = await Business.findOne({ email: req.body.email });
+        console.log(existingBusiness);
 
-        if (existingUser) {
-            return res.status(409).json({ message: "User already exists" });
+        if (existingBusiness) {
+            return res.status(httpStatus.CONFLICT).json({ message: "Business already exists" });
         }
 
-        // const otp = Math.floor(100000 + Math.random() * 900000);
-
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-        const newUser = new User({
-            personalName,
-            password: hashedPassword,
-            email,
-            country,
-            businessName,
-            role,
-            industry
-        });
-console.log(newUser);
+        const verifyBusinessToken = tokenService.generateVerifyEmailToken() // Generate token
+        const hashedPassword =  await passwordHash(req.body.password);
+        req.body = { ...req.body, password:hashedPassword, confirmEmailToken:verifyBusinessToken };
+    
+        console.log("Verification Token", verifyBusinessToken)
+        const newBusiness = await Business.create(req.body);
+    console.log(newBusiness); 
   
-        await newUser.save();
-        const verificationToken = crypto.randomBytes(32).toString('hex'); // Generate token
-
-        await sendVerificationEmail(email, businessName, verificationToken);
-
-        return res.status(201).json({ message: "User saved successfully", newUser });
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ message: "Error saving user", error: err.message });
+       const savedBusiness = await newBusiness.save();
+       try {
+        const url = `${req.protocol}://${req.get("host")}/api/user/verifyEmail?email=${savedBusiness.email}&token=${verifyBusinessToken}`
+        const currentDir = path.dirname(new URL(import.meta.url).pathname);
+    
+        // Normalize the path to remove any leading slash and avoid path issues on Windows
+        const normalizedCurrentDir = currentDir.replace(/^\/([A-Za-z])/, '$1');  // Fix leading slash for Windows
+        
+        // Debug the computed normalizedCurrentDir to ensure it's correct
+        console.log('Normalized current directory:', normalizedCurrentDir);
+        
+        // Resolve the path to 'emailTemplate.html'
+        const templatePath = path.join(normalizedCurrentDir, "../utils/templates/emailVerify.html");
+        
+        // Read the HTML template synchronously
+        const htmlTemplate = fs.readFileSync(templatePath, "utf8");
+        if (!savedBusiness.personalName || !savedBusiness.email || !url) {
+           throw new Error('Missing required data for email template');
+         }
+        const emailTemplate = htmlTemplate
+       .replace(/{{personalName}}/g, savedBusiness.personalName)
+       .replace(/{{email}}/g, savedBusiness.email)
+       .replace(/{{url}}/g, url);
+    console.log("FirstName", savedBusiness.personalName)
+        await emailService.sendEmail(emailTemplate, "Verify Email", savedBusiness.email);
+        console.log("URL", url)
+    }catch(error) {
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+         error: error.message,
+         message: "Internal server error"
+        })
     }
-};
 
-export const forgotPassword = async (req, res) => {
-  try {
+        return res.status(httpStatus.CREATED).json({ message: "Business saved successfully", newBusiness });
+});
+
+export const forgotUserPassword = catchAsync( async (req, res) => {
     const { email } = req.body;
     if (!email) {
-      return res.status(400).json({ message: "Please input your email" });
+      return res.status(httpStatus.BAD_REQUEST).json({ message: "Please input your email" });
     }
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
     }
 
-    const token = uuidv4();
-
-    user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour expiration
-
-    await user.save();
-
-    await sendPasswordResetRequestEmail(email, personalName, token); 
-
-    return res.status(200).json({ message: "Check your email to reset your password" });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Error saving user", err });
-  }
-};
-
-
-  export const resetPassword = async (req, res) => {
-    try {
-      const { token } = req.params;
-      const { newPassword, confirmPassword } = req.body;
-  
-      if (!token) {
-        return res.status(400).json({ message: "Please input your reset token" });
-      }
-      if (newPassword !== confirmPassword) {
-        return res.status(400).json({ message: "Passwords do not match" });
-      }
-  
-      const user = await User.findOne({
-        resetPasswordToken: token
-      });
-  
-      if (!user) {
-        return res.status(400).json({ message: "Invalid reset token" });
-      }
-  
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      user.password = hashedPassword;
-  
-      await user.save();
-      await sendPasswordChangedEmail(email, personalName)
-  
-      return res.status(200).json({ message: "Password reset successfully" });
-    } catch (err) {
-      console.error(err);
-      return res.status(500).json({ message: "Error resetting password", err });
-    }
-  };
-
-  export const uploadPicture = async (req, res) => {
-    try {
+    const resetToken = tokenService.generateVerifyEmailToken(); 
+    const expirationTime = new Date();
+     expirationTime.setMinutes(expirationTime.getMinutes() + 5);
+ 
+     user.passwordResetToken = resetToken;
+     user.passwordResetTokenExpires = expirationTime;
+     await user.save();
     
-        const user = await User.findById(req.params.id);
+     try {
+      const url = `${req.protocol}://${req.get("host")}/api/user/resetPassword?token=${resetToken}`;
+       const currentDir = path.dirname(new URL(import.meta.url).pathname);
+   
+        // Normalize the path to remove any leading slash and avoid path issues on Windows
+        const normalizedCurrentDir = currentDir.replace(/^\/([A-Za-z])/, '$1');  // Fix leading slash for Windows
+        
+        // Debug the computed normalizedCurrentDir to ensure it's correct
+        console.log('Normalized current directory:', normalizedCurrentDir);
+        
+        // Resolve the path to 'emailTemplate.html'
+        const templatePath = path.join(normalizedCurrentDir, "../utils/templates/passwordReset.html");
+        
+        // Debug the resolved template path
+        console.log('Resolved template path:', templatePath);
+        
+        // Read the HTML template synchronously
+        const htmlTemplate = fs.readFileSync(templatePath, "utf8");
+        const emailTemplate = htmlTemplate
+       .replace(/{{firstName}}/g, user.firstName)
+       .replace(/{{email}}/g, user.email)  
+       .replace(/{{url}}/g, url)
+   
+     await emailService.sendEmail(emailTemplate, "Reset Password", user.email);
+       console.log("URL", url)
+     return res.status(httpStatus.OK).json({
+       success: true,
+       user,
+       message: "Password reset link sent Successfully"
+     })
+   }catch(err) {
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+       err: err.message,
+       message: "Internal server error"
+      })
+   }
+});
+
+export const forgotBusinessPassword = catchAsync( async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(httpStatus.BAD_REQUEST).json({ message: "Please input your email" });
+  }
+
+  const business = await Business.findOne({ email });
+  if (!business) {
+    return res.status(httpStatus.NOT_FOUND).json({ message: "Business not found" });
+  }
+
+  const businessResetToken = tokenService.generateVerifyEmailToken(); 
+  const expirationTime = new Date();
+   expirationTime.setMinutes(expirationTime.getMinutes() + 5);
+
+   business.passwordResetToken = businessResetToken;
+   business.passwordResetTokenExpires = expirationTime;
+   await business.save();
+  
+   try {
+    const url = `${req.protocol}://${req.get("host")}/api/user/resetPassword?token=${resetToken}`;
+     const currentDir = path.dirname(new URL(import.meta.url).pathname);
+ 
+      // Normalize the path to remove any leading slash and avoid path issues on Windows
+      const normalizedCurrentDir = currentDir.replace(/^\/([A-Za-z])/, '$1');  // Fix leading slash for Windows
+      
+      // Debug the computed normalizedCurrentDir to ensure it's correct
+      console.log('Normalized current directory:', normalizedCurrentDir);
+      
+      // Resolve the path to 'emailTemplate.html'
+      const templatePath = path.join(normalizedCurrentDir, "../../../utils/templates/passwordReset.html");
+      
+      // Debug the resolved template path
+      console.log('Resolved template path:', templatePath);
+      
+      // Read the HTML template synchronously
+      const htmlTemplate = fs.readFileSync(templatePath, "utf8");
+      const emailTemplate = htmlTemplate
+     .replace(/{{firstName}}/g, business.personalName)
+     .replace(/{{email}}/g, business.email)  
+     .replace(/{{url}}/g, url)
+ 
+   await emailService.sendEmail(emailTemplate, "Reset Password", business.email);
+     console.log("URL", url)
+   return res.status(httpStatus.OK).json({
+     success: true,
+     user,
+     message: "Password reset link sent Successfully"
+   })
+ }catch(err) {
+    return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+     err: err.message,
+     message: "Internal server error"
+    })
+ }
+});
+
+export const resetUserPassword = catchAsync(async (req, res, next) => {
+  const { token } = req.query;
+  const { error, value } = resetPasswordSchema.validate(req.body, {abortEarly:false})
+  if(!token) {
+      return res.status(httpStatus.NOT_FOUND).json({
+          message: "Please insert a valid URL"
+      })
+  }
+  if(error) {
+      console.log("Errors", error)
+      return res.status(httpStatus.BAD_REQUEST).json({
+          message: error.message
+      })
+  }
+  const user = await User.findOne({ 
+  passwordResetToken: token,
+ 
+   })
+  console.log("QUERIED USER", user)
+  if(!user) {
+      return res.status(httpStatus.BAD_REQUEST).json({
+          message: 'User not found signup and verify'})
+  }
+     // Check if the reset token has expired
+     if (user.passwordResetExpires && new Date(user.passwordResetExpires) < new Date()) {
+      return res.status(httpStatus.BAD_REQUEST).json({
+          message: 'The password reset token has expired. Please request a new one.'
+      });
+  }
+
+  const hashedPassword = await passwordHash(req.body.newPassword)
+
+  user.password = hashedPassword;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save()
+ try {
+  const url = `${req.protocol}://${req.get("host")}/api/user/login`;
+   const currentDir = path.dirname(new URL(import.meta.url).pathname);
+
+    // Normalize the path to remove any leading slash and avoid path issues on Windows
+    const normalizedCurrentDir = currentDir.replace(/^\/([A-Za-z])/, '$1');  // Fix leading slash for Windows
+    
+    // Debug the computed normalizedCurrentDir to ensure it's correct
+    console.log('Normalized current directory:', normalizedCurrentDir);
+    
+    // Resolve the path to 'emailTemplate.html'
+    const templatePath = path.join(normalizedCurrentDir, "../utils/templates/passwordChanged.html");
+    
+    // Debug the resolved template path
+    console.log('Resolved template path:', templatePath);
+    
+    // Read the HTML template synchronously
+    const htmlTemplate = fs.readFileSync(templatePath, "utf8");
+    const emailTemplate = htmlTemplate
+   .replace(/{{firstName}}/g, user.firstName)
+   .replace(/{{email}}/g, user.email)  
+   .replace(/{{url}}/g, url)
+
+ await emailService.sendEmail(emailTemplate, "Password Changed Succesfully", user.email);
+ return res.status(httpStatus.OK).json({
+   success: true,
+   user,
+   message: "Password reset link sent Successfully"
+ })
+}catch(err) {
+  return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+   err: err.message,
+   message: "Internal server error"
+  })
+}
+});
+
+
+export const resetBusinessPassword = catchAsync(async (req, res, next) => {
+  const { token } = req.query;
+  const { error, value } = resetPasswordSchema.validate(req.body, {abortEarly:false})
+  if(!token) {
+      return res.status(httpStatus.NOT_FOUND).json({
+          message: "Please insert a valid URL"
+      })
+  }
+  if(error) {
+      console.log("Errors", error)
+      return res.status(httpStatus.BAD_REQUEST).json({
+          message: error.message
+      })
+  }
+  const user = await User.findOne({ 
+  passwordResetToken: token,
+ 
+   })
+  console.log("QUERIED USER", user)
+  if(!user) {
+      return res.status(httpStatus.BAD_REQUEST).json({
+          message: 'User not found signup and verify'})
+  }
+     // Check if the reset token has expired
+     if (user.passwordResetExpires && new Date(user.passwordResetExpires) < new Date()) {
+      return res.status(httpStatus.BAD_REQUEST).json({
+          message: 'The password reset token has expired. Please request a new one.'
+      });
+  }
+
+  const hashedPassword = await passwordHash(req.body.newPassword)
+
+  user.password = hashedPassword;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save()
+ try {
+  const url = `${req.protocol}://${req.get("host")}/api/user/login`;
+   const currentDir = path.dirname(new URL(import.meta.url).pathname);
+
+    // Normalize the path to remove any leading slash and avoid path issues on Windows
+    const normalizedCurrentDir = currentDir.replace(/^\/([A-Za-z])/, '$1');  // Fix leading slash for Windows
+    
+    // Debug the computed normalizedCurrentDir to ensure it's correct
+    console.log('Normalized current directory:', normalizedCurrentDir);
+    
+    // Resolve the path to 'emailTemplate.html'
+    const templatePath = path.join(normalizedCurrentDir, "../../../utils/templates/passwordChanged.html");
+    
+    // Debug the resolved template path
+    console.log('Resolved template path:', templatePath);
+    
+    // Read the HTML template synchronously
+    const htmlTemplate = fs.readFileSync(templatePath, "utf8");
+    const emailTemplate = htmlTemplate
+   .replace(/{{firstName}}/g, user.firstName)
+   .replace(/{{email}}/g, user.email)  
+   .replace(/{{url}}/g, url)
+
+ await emailService.sendEmail(emailTemplate, "Password Changed Succesfully", user.email);
+ return res.status(httpStatus.OK).json({
+   success: true,
+   user,
+   message: "Password reset link sent Successfully"
+ })
+}catch(err) {
+  return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+   err: err.message,
+   message: "Internal server error"
+  })
+}
+});
+
+  
+
+  export const uploadPicture = catchAsync(async (req, res) => {
+        const user = await User.findOne({ _id: req.params.id });
 
         if (!user) {
-            return res.status(404).json({ message: "User not found" });
+            return res.status(httpStatus.BAD_REQUEST).json({ message: "User not found" });
         }
 
-        const result = await cloudinary.uploader.upload(req.file.path);
+        const result = await cloudinary.v2.uploader.upload(req.file.path);
 
-        const updatedTrain = await Train.findByIdAndUpdate(
-            req.params.id,
+        const updateUser = await User.findByIdAndUpdate(
+          {
+            _id: req.params.id,
+          },
             { image: result.secure_url },
             { new: true } 
         );
 
-        return res.status(200).json({
+        return res.status(httpStatus.CREATED).json({
             message: "Picture uploaded successfully",
-            data: updatedTrain,
+            data: updateUser,
         });
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({ message: "Error uploading picture", error: err });
-    }
-};
+});
 
 
   export const deleteUser = async (req, res) => {
@@ -213,52 +471,213 @@ export const forgotPassword = async (req, res) => {
     }
   };
 
-  export const verifyEmail = async (req, res) => {
-    try {
-        const { token } = req.query;
-
-        const user = await User.findOne({ verificationToken: token });
-
-        if (!user) {
-            return res.status(400).json({ message: "Invalid or expired verification token" });
-        }
-
-        user.isVerified = true;
-        user.verificationToken = null; // Clear the token after verification
-        await user.save();
-
-        return res.status(200).json({ message: "Email verified successfully" });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Verification failed", error: error.message });
+  export const verifyUserEmail =catchAsync(async (req, res) => {
+        const { email, token } = req.query;
+        console.log("Token", token)
+        if(!(token && email)) {
+        return res.status(httpStatus.BAD_REQUEST).json({
+            message: "Please insert a valid URL"
+        })
+      }
+        const user = await User.findOne({ email });
+        console.log("QUERIED USER", user)
+        if(!user) {
+          return res.status(httpStatus.BAD_REQUEST).json({
+              message: 'User not found signup and verify'})
+      }
+      if(user.isVerified === true) {
+        // return next(new AppError('User already verified you can Login now', 400))
+        return res.status(httpStatus.FORBIDDEN).json({
+            message: 'user already veriffied you can Login now'
+        })
     }
-};
+    if(+token !== user.confirmEmailToken) {
+      console.log("Token Type:", typeof token);
+      console.log("Expected Token Type:", typeof user.confirmEmailToken);
+
+      console.log("COMPARE", token)
+      console.log("COMPARES", user.confirmEmailToken)
+      return res.status(httpStatus.FORBIDDEN).json({
+          message: 'You have entered a wrong token'
+      })
+  }
+        user.isVerified = true;
+        user.confirmEmailToken = undefined; // Clear the token after verification
+        const savedUser = await user.save();
+
+        createSendToken(savedUser, 200, res);
+        try {
+          const url = `${req.protocol}://${req.get("host")}/api/trackeet`
+          const currentDir = path.dirname(new URL(import.meta.url).pathname);
+      
+          // Normalize the path to remove any leading slash and avoid path issues on Windows
+          const normalizedCurrentDir = currentDir.replace(/^\/([A-Za-z])/, '$1');  // Fix leading slash for Windows
+          
+          // Debug the computed normalizedCurrentDir to ensure it's correct
+          console.log('Normalized current directory:', normalizedCurrentDir);
+          
+          // Resolve the path to 'emailTemplate.html'
+          const templatePath = path.join(normalizedCurrentDir, "../utils/templates/welcome.html");
+          
+          // Read the HTML template synchronously
+          const htmlTemplate = fs.readFileSync(templatePath, "utf8");
+          if (!user.firstName || !user.email || !url) {
+             throw new Error('Missing required data for email template');
+           }
+          const emailTemplate = htmlTemplate
+         .replace(/{{firstName}}/g, user.firstName)
+         .replace(/{{email}}/g, user.email)
+         .replace(/{{url}}/g, url);
+      console.log("FirstName", user.firstName)
+          await emailService.sendEmail(emailTemplate, "Welcome", user.email);
+          console.log("URL", url)
+       }catch (error) {
+            // Ensure no further response is sent after failure in the try block
+            if (!res.headersSent) {
+              return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+                  error: error.message,
+                  message: "Internal server error"
+              });
+          }}
+         
+});
+
+export const verifyBusinessEmail =catchAsync(async (req, res) => {
+  const { email, token } = req.query;
+  console.log("Token", token)
+  if(!(token && email)) {
+  return res.status(httpStatus.BAD_REQUEST).json({
+      message: "Please insert a valid URL"
+  })
+}
+  const business = await Business.findOne({ email });
+  console.log("QUERIED Business", business)
+  if(!business) {
+    return res.status(httpStatus.BAD_REQUEST).json({
+        message: 'User not found signup and verify'})
+}
+if(business.isVerified === true) {
+  // return next(new AppError('business already verified you can Login now', 400))
+  return res.status(httpStatus.FORBIDDEN).json({
+      message: 'business already veriffied you can Login now'
+  })
+}
+if(+token !== business.confirmEmailToken) {
+console.log("Token Type:", typeof token);
+console.log("Expected Token Type:", typeof business.confirmEmailToken);
+
+console.log("COMPARE", token)
+console.log("COMPARES", business.confirmEmailToken)
+return res.status(httpStatus.FORBIDDEN).json({
+    message: 'You have entered a wrong token'
+})
+}
+  business.isVerified = true;
+  business.confirmEmailToken = undefined; // Clear the token after verification
+  const savedBusiness = await business.save();
+
+  createSendToken(savedBusiness, 200, res);
+  try {
+    const url = `${req.protocol}://${req.get("host")}/api/user/login`
+    const currentDir = path.dirname(new URL(import.meta.url).pathname);
+
+    // Normalize the path to remove any leading slash and avoid path issues on Windows
+    const normalizedCurrentDir = currentDir.replace(/^\/([A-Za-z])/, '$1');  // Fix leading slash for Windows
+    
+    // Debug the computed normalizedCurrentDir to ensure it's correct
+    console.log('Normalized current directory:', normalizedCurrentDir);
+    
+    // Resolve the path to 'emailTemplate.html'
+    const templatePath = path.join(normalizedCurrentDir, "../utils/templates/welcome.html");
+    
+    // Read the HTML template synchronously
+    const htmlTemplate = fs.readFileSync(templatePath, "utf8");
+    if (!business.firstName || !business.email || !url) {
+       throw new Error('Missing required data for email template');
+     }
+    const emailTemplate = htmlTemplate
+   .replace(/{{firstName}}/g, business.personalName)
+   .replace(/{{email}}/g, business.email)
+   .replace(/{{url}}/g, url);
+console.log("FirstName", business.personalName)
+    await emailService.sendEmail(emailTemplate, "Welcome", business.email);
+    console.log("URL", url)
+ }catch (error) {
+    return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+        error: error.message,
+        message: "Internal server error"
+       })
+ }
+   
+});
+
+
+
 
 // authController.js
-export const login = async (req, res) => {
-  try {
+export const loginUser = catchAsync(async (req, res) => {
       const { email, password } = req.body;
+      if(!email || !password) {
+        return res.status(httpStatus.UNAUTHORIZED).json({
+          message: "Please provide email and password"});
+    }
+      const user = await User.findOne({ email }).select('+password');;
 
-      const user = await User.findOne({ email });
+      if(!user ||!(await passwordCompare(password, user.password))) {
+        return res.status(httpStatus.UNAUTHORIZED).json({
+            message:"Invalid email or password"
+        
+    });
+    }
+    if(!user.isVerified === true ) {
+      return res.status(httpStatus.UNAUTHORIZED).json({
+          message:"User not verified yet***",
+  })
+}
+  createSendToken(user, 200, res)
+});
 
-      if (!user) {
-          return res.status(400).json({ message: "Invalid email or password" });
-      }
+// authController.js
+export const loginBusiness = catchAsync(async (req, res) => {
+  const { email, password } = req.body;
+  if(!email || !password) {
+    return res.status(httpStatus.UNAUTHORIZED).json({
+      message: "Please provide email and password"});
+}
+  const business = await Business.findOne({ email }).select('+password');;
 
-      if (!user.isVerified) {
-          return res.status(403).json({ message: "Please verify your email to log in" });
-      }
+  if(!busniess ||!(await passwordCompare(password, business.password))) {
+    return res.status(httpStatus.UNAUTHORIZED).json({
+        message:"Invalid email or password"
+    
+});
+}
+if(!business.isVerified === true ) {
+  return res.status(httpStatus.UNAUTHORIZED).json({
+      message:"User not verified yet***",
+})
+}
+createSendToken(business, 200, res)
+});
 
-      const isMatch = await bcrypt.compare(password, user.password);
 
-      if (!isMatch) {
-          return res.status(400).json({ message: "Invalid email or password" });
-      }
 
-      // Generate token and respond with success if needed
-
-  } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Login failed", error: error.message });
+export const protect = catchAsync( async(req, res, next) => {
+  let token;
+  if(req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+    token = req.headers.authorization.split(" ")[1]
   }
-};
+  if(!token) {
+    return res.status(httpStatus.UNAUTHORIZED).json({message: "You are not logged in! Please log in to get Access."})
+  }
+  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET)
+
+  const currentUser = await User.findById(decoded.id);
+  if(!currentUser) {
+    return res.status(httpStatus.UNAUTHORIZED).json({ message: "User no longer exist"})
+  }
+  req.user = currentUser 
+  next()
+
+}
+)

@@ -12,15 +12,26 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
+    "bullmq": "^5.25.6",
     "cloudinary": "^2.5.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^7.1.5",
+    "http-status": "^2.0.0",
+    "ioredis": "^5.4.1",
+    "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.6.2",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.16",
-    "uuid": "^10.0.0"
+    "pino": "^9.5.0",
+    "pino-pretty": "^13.0.0",
+    "uuid": "^10.0.0",
+    "winston": "^3.17.0",
+    "xss-clean": "^0.1.4"
   }
 }

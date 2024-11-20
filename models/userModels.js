@@ -12,8 +12,11 @@ const userSchema = new Schema({
     },
     password: {
         type: String,
-        required: true
+        required: true,
+        select: false
     },
+    passwordResetToken: Number,
+    passwordResetExpires: Date,
     country: {
         type: String,
         required: true
@@ -29,14 +32,21 @@ const userSchema = new Schema({
     },
     resetPasswordToken: {
         type: String,
-      },
-    image: {
+      }, 
+    image: { 
         type: String,
       },
-      verificationToken: {
-        type: String,
-      }
-
+      createdAt: { 
+        type: Date,
+        default: Date.now(),
+        select: false
+      },
+      isVerified: {
+        type: Boolean,
+        default: false,
+      },
+      confirmEmailToken: Number,
+      confirmEmailTokenExpires: Date, 
 },
 {
     versionKey: false

@@ -1,31 +1,25 @@
-
+import { expenseSchema } from '../validation/validation.js';
 import Expense from '../models/expensesModels.js';
+import catchAsync from '../middleware/catchAsync.js';
 
 // Controller function to add an expense
-export const addExpense = async (req, res) => {
-    try {
-        const { expenseName, amount, category, date, link, description } = req.body;
+export const addExpense = catchAsync(async (req, res) => {
+        const { error, value } = expenseSchema.validate(req.body, {abortEarly: false})
 
-        // Check for required fields
-        if (!expenseName || !amount || !category || !date) {
-            return res.status(400).json({ message: "Please provide all required fields." });
+        if(error) {
+            console.log("Errors", error)
+            return res.status(httpStatus.NOT_FOUND).json({
+                message: error.message
+            })
         }
-
         // Get file path if an attachment is uploaded
         const attachment = req.file ? req.file.path : null;
 
+        req.body= { ...req.body, attachment: attachment }
         // Create a new expense
-        const newExpense = new Expense({
-            expenseName,
-            amount,
-            category,
-            date,
-            link,
-            description,
-            attachment
-        });
+        const newExpense = new Expense.create(req.body);
 
-        // Save to database
+        // Save to database 
         const savedExpense = await newExpense.save();
 
         // Send success response
@@ -33,9 +27,4 @@ export const addExpense = async (req, res) => {
             message: "Expense added successfully.",
             data: savedExpense
         });
-
-    } catch (error) {
-        console.error("Error adding expense:", error);
-        res.status(500).json({ message: "Failed to add expense.", error });
-    }
-};
+});

@@ -1,34 +1,79 @@
-import express from 'express';
-import mongoose from 'mongoose';
-import { config } from 'dotenv';
-import morgan from 'morgan';
-import connectDB from './database/db.js'; 
-import userRouter from './routes/user.routes.js';
-import expenseRouter from './routes/expense.routes.js';
-import budgetRouter from './routes/budget.routes.js';
+import app from "./app.js";
+import dotenv from "dotenv";
+import logger from "./utils/log/logger.js"; 
+import connectDB from "./database/db.js" 
+import { sendServerFailure } from "./utils/email/email-sender.js"; 
+import  { v2 as cloudinary } from "cloudinary";
 
-
-const app = express();
-app.use(express.json());
-app.use(morgan('dev'));
-config();
-
-const port = process.env.PORT || 3000;
-
-app.get('/', (req, res) => {
-    res.send('Welcome to Trackeet!')
+dotenv.config();
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
+// const url = cloudinary.url("trackeet")
+// console.log("URL", url)
+(async function() {
+  const results = await cloudinary.uploader.upload("./public/images/Logomark.svg")
+  console.log("RESULTS", results)
+  const url =cloudinary.url(results.public_id, {
+  //   transformation: [
+  //     {
+  //     quality: "auto", 
+  //     fetch_format: "auto"
+  //   },
+  //   {
+  //     width: 1200, 
+  //     height: 1200,
+  //     crop: "fill",
+  //     gravity: "auto"
+  //   }
+  // ]
+  })
+})()
+// const url = cloudinary.url("Section_bhthbc", {
+//   transformation: [
+//     {
+//     quality: "auto"
+//   },
+//   {
+//     fetch_format: "auto"
+//   },
+//   {
+//     width: 1200
+//   }
+// ]
+// }
+// );
+// console.log(url)
+process.on("uncaughtException", err=> {
+    console.log('UNCAUGHT EXCEPTION!,  SHUTTING DOWN........');
+    console.log(err)
+    console.log(err.name, err.message)
+      process.exit(1)
+  })
+  
 
-app.use('/api/v1/user', userRouter);
-app.use('/api/v1/expense', expenseRouter);
-app.use('/api/v1/budget', budgetRouter);
+  const port = process.env.PORT || 1800;
+  dotenv.config();
 
-app.listen(port, async () =>{
+  const server = app.listen(port, async () => {
     try {
-        await connectDB(process.env.MONGODB_URL);
-        console.log('Connected to MongoDB');
-        console.log(`Server is listening on ${port}`);
+      await connectDB(process.env.MONGODB_URL)
+      console.log(`Database connected successfully`)
+      logger.info(`Server is running on port ${port}`);
     } catch (error) {
-        console.log("Error connecting to MongoDB: " + error.message);
+      logger.error(error);
+      sendServerFailure()
     }
-})
+  });
+
+  process.on("unhandledRejection", err=> {
+    console.log(err.name, err.message);
+    console.log("UNHANDLED REJECTION!!! SHUTTING DOWN...");
+    server.close(()=> {
+        process.exit(1) 
+    })
+    
+  })
+
