@@ -29,7 +29,7 @@ const storage = diskStorage({
     cb(null, uniqueName);
   }
 });
-
+ 
 // Configure file filter for specific file types
 const fileFilter = (req, file, cb) => {
   const allowedExtensions = ['.jpg', '.jpeg', '.png', '.mp4', '.mov', '.avi', '.docx'];
