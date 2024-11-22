@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
+    "build": "npm install --include=dev --unsafe-perm",
     "postinstall": "npm rebuild bcrypt --unsafe-perm"
   },
   "keywords": [],
