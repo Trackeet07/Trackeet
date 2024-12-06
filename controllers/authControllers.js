@@ -216,6 +216,7 @@ export const personalSignup = catchAsync(async (req, res, next) => {
         console.log("i got here")
         // Read the HTML template synchronously
         const htmlTemplate = fs.readFileSync(templatePath, "utf8");
+        console.log("i broke here")
         if (!savedUser.personalName || !savedUser.email || !url) {
            throw new Error('Missing required data for email template');
          }
