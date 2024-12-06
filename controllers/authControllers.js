@@ -214,6 +214,7 @@ export const personalSignup = catchAsync(async (req, res, next) => {
         // Resolve the path to 'emailTemplate.html'
         const templatePath = path.join(normalizedCurrentDir, "../utils/templates/emailVerify.html");
         console.log("i got here")
+        console.log("i got here>", templatePath)
         // Read the HTML template synchronously
         const htmlTemplate = fs.readFileSync(templatePath, "utf8");
         console.log("i broke here", htmlTemplate)
