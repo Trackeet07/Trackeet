@@ -11,13 +11,13 @@ import Business from '../models/userModels.js';
 import catchAsync from '../middleware/catchAsync.js';
 //import { sendVerificationEmail } from "../utils/email/email-sender.js"
 import { emailService, tokenService } from "../services/index.js";
-import Resident from '../models/resident.js';
+//import Resident from '../models/resident.js';
 import { registerSchema, businessSchema, resetPasswordSchema, loginSchema } from '../validation/validation.js';
 import winston from 'winston';
 import { promisify } from 'util';
 const { error } = winston;
 
-import { initiateTransfer } from "../utils/transferService.js"
+//import { initiateTransfer } from "../utils/transferService.js"
 
 // const rave = new Flutterwave(process.env.FLUTTERWAVE_PUBLIC_KEY, process.env.FLUTTERWAVE_SECRET_KEY);
 
@@ -42,44 +42,44 @@ res.status(statusCode).json({
 }
 
 
-export const residentApplication = catchAsync( async(req, res) => {
-  const validatedData = req.value.body;
-const newResident = await Resident.create(validatedData)
+// export const residentApplication = catchAsync( async(req, res) => {
+//   const validatedData = req.value.body;
+// const newResident = await Resident.create(validatedData)
 
-const savedResident = await newResident.save();
+// const savedResident = await newResident.save();
 
-try {
-  const firstName = savedResident.fullName.split(/[, ]+/)[0]
-  console.log("FIRST NAME=", firstName)
-  const currentDir = path.dirname(new URL(import.meta.url).pathname);
+// try {
+//   const firstName = savedResident.fullName.split(/[, ]+/)[0]
+//   console.log("FIRST NAME=", firstName)
+//   const currentDir = path.dirname(new URL(import.meta.url).pathname);
 
-  // Normalize the path to remove any leading slash and avoid path issues on Windows
-  const normalizedCurrentDir = currentDir.replace(/^\/([A-Za-z])/, '$1');  // Fix leading slash for Windows
+//   // Normalize the path to remove any leading slash and avoid path issues on Windows
+//   const normalizedCurrentDir = currentDir.replace(/^\/([A-Za-z])/, '$1');  // Fix leading slash for Windows
   
-  // Debug the computed normalizedCurrentDir to ensure it's correct
-  console.log('Normalized current directory:', normalizedCurrentDir);
+//   // Debug the computed normalizedCurrentDir to ensure it's correct
+//   console.log('Normalized current directory:', normalizedCurrentDir);
   
-  // Resolve the path to 'emailTemplate.html'
-  const templatePath = path.join(normalizedCurrentDir, "../utils/templates/resident.html");
+//   // Resolve the path to 'emailTemplate.html'
+//   const templatePath = path.join(normalizedCurrentDir, "../utils/templates/resident.html");
   
-  // Read the HTML template synchronously
-  const htmlTemplate = fs.readFileSync(templatePath, "utf8");
-  if (!savedResident.fullName || !savedResident.email) {
-     throw new Error('Missing required data for email template');
-   }
-   console.log("OLA>>")
-  const emailTemplate = htmlTemplate
- .replace(/{{personalName}}/g, firstName)
- .replace(/{{email}}/g, savedResident.email)
-  await emailService.sendEmail(emailTemplate, "Your Grazac Talent City Residency Application is Under Review", savedResident.email);
-}catch(error) {
-  return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-   error: error.message,
-   message: "Internal server error"
-  })
-}
-return res.status(httpStatus.CREATED).json({ message: `Successful` });
-})
+//   // Read the HTML template synchronously
+//   const htmlTemplate = fs.readFileSync(templatePath, "utf8");
+//   if (!savedResident.fullName || !savedResident.email) {
+//      throw new Error('Missing required data for email template');
+//    }
+//    console.log("OLA>>")
+//   const emailTemplate = htmlTemplate
+//  .replace(/{{personalName}}/g, firstName)
+//  .replace(/{{email}}/g, savedResident.email)
+//   await emailService.sendEmail(emailTemplate, "Your Grazac Talent City Residency Application is Under Review", savedResident.email);
+// }catch(error) {
+//   return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+//    error: error.message,
+//    message: "Internal server error"
+//   })
+// }
+// return res.status(httpStatus.CREATED).json({ message: `Successful` });
+// })
 
 // export const initiatePayment = async (req, res) => {
 //   const { email, amount, currency, tx_ref } = req.body;
@@ -117,42 +117,42 @@ return res.status(httpStatus.CREATED).json({ message: `Successful` });
 // };
 
 
-export const initiatePayment = catchAsync (async (req, res) => {
+// export const initiatePayment = catchAsync (async (req, res) => {
   
-  const { account_bank, account_number, amount, narration } = req.body;
-  try {
-    const response = await initiateTransfer({  amount, narration });//account_bank, account_number,
-    res.status(200).json({
-      message: "Transfer initiated successfully",
-      data: response,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Error initiating transfer",
-      error: error.message,
-    });
-  }
-})
+//   const { account_bank, account_number, amount, narration } = req.body;
+//   try {
+//     const response = await initiateTransfer({  amount, narration });//account_bank, account_number,
+//     res.status(200).json({
+//       message: "Transfer initiated successfully",
+//       data: response,
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       message: "Error initiating transfer",
+//       error: error.message,
+//     });
+//   }
+// })
 
-export const verifyPayment = async (req, res) => {
-  const { transaction_id } = req.query;
+// export const verifyPayment = async (req, res) => {
+//   const { transaction_id } = req.query;
 
-  try {
-    const response = await flw.Transaction.verify({ id: transaction_id });
+//   try {
+//     const response = await flw.Transaction.verify({ id: transaction_id });
 
-    if (response.status === "success") {
-      return res.status(200).json({
-        message: "Payment verified successfully",
-        data: response,
-      });
-    } else {
-      throw new Error("Payment verification failed");
-    }
-  } catch (error) {
-    console.error("Payment verification error:", error);
-    res.status(500).json({ error: error.message });
-  }
-};
+//     if (response.status === "success") {
+//       return res.status(200).json({
+//         message: "Payment verified successfully",
+//         data: response,
+//       });
+//     } else {
+//       throw new Error("Payment verification failed");
+//     }
+//   } catch (error) {
+//     console.error("Payment verification error:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// };
 
 
 
