@@ -230,7 +230,8 @@ export const personalSignup = async (req, res, next) => {
         await emailService.sendEmail(emailTemplate, "Verify Email", savedUser.email);
         console.log("URL", url)
     }catch(error) {
-        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+      console.log("Error in sendEmail:", error); 
+      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
          error: error.message,
          message: "Internal server error"
         })
