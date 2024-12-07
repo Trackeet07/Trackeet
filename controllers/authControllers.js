@@ -238,7 +238,7 @@ export const personalSignup = async (req, res, next) => {
 
       return res.status(httpStatus.CREATED).json({ message: `You're almost there! We've sent an email verificaion link to ${savedUser.email}.` });
 } catch(error) {
-  console.error("Error in personalSignup controller:", error);
+  console.log("Error in personalSignup controller:", error);
   return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
     message: "Internal server error",
     error: error.message,
