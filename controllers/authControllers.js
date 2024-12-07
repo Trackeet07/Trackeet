@@ -2,6 +2,7 @@ import cloudinary from '../public/cloudinary.js';
 import crypto from 'crypto';
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 import httpStatus from 'http-status';
 import { passwordHash, passwordCompare } from '../middleware/hashing.js';
 import jwt from 'jsonwebtoken';
@@ -16,6 +17,8 @@ import { registerSchema, businessSchema, resetPasswordSchema, loginSchema } from
 import winston from 'winston';
 import { promisify } from 'util';
 const { error } = winston;
+
+
 
 //import { initiateTransfer } from "../utils/transferService.js"
 
@@ -202,25 +205,39 @@ export const personalSignup = async (req, res, next) => {
       try {
         const firstName = savedUser.personalName.split(/[, ]+/)[0]
         console.log("FIRST NAME=", firstName)
-        const url = `${req.protocol}://${req.get("host")}/api/user/verifyEmail?email=${savedUser.email}&token=${verificationToken}`
-        const currentDir = path.dirname(new URL(import.meta.url).pathname);
+       const url = `${req.protocol}://${req.get("host")}/api/user/verifyEmail?email=${savedUser.email}&token=${verificationToken}`
+        // const currentDir = path.dirname(new URL(import.meta.url).pathname);
     
-        // Normalize the path to remove any leading slash and avoid path issues on Windows
-        const normalizedCurrentDir = currentDir.replace(/^\/([A-Za-z])/, '$1');  // Fix leading slash for Windows
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+
+        // Normalize the path for cross-platform compatibility
+        const templatePath = path.join(__dirname, "../utils/templates/emailVerify.html");
+
+        // Check if the file exists
+      if (!fs.existsSync(templatePath)) {
+      console.error("File does not exist:", templatePath);
+      throw new Error("Template file not found");
+      }
+
+      const htmlTemplate = fs.readFileSync(templatePath, "utf8");
+      console.log("Template content loaded successfully");
+        // // Normalize the path to remove any leading slash and avoid path issues on Windows
+        // const normalizedCurrentDir = currentDir.replace(/^\/([A-Za-z])/, '$1');  // Fix leading slash for Windows
         
-        // Debug the computed normalizedCurrentDir to ensure it's correct
-        console.log('Normalized current directory:', normalizedCurrentDir);
+        // // Debug the computed normalizedCurrentDir to ensure it's correct
+        // console.log('Normalized current directory:', normalizedCurrentDir);
         
-        // Resolve the path to 'emailTemplate.html'
-        const templatePath = path.join(normalizedCurrentDir, "../utils/templates/emailVerify.html");
-        console.log("i got here")
-        console.log("i got here>", templatePath)
+        // // Resolve the path to 'emailTemplate.html'
+        // const templatePath = path.join(normalizedCurrentDir, "../utils/templates/emailVerify.html");
+        // console.log("i got here")
+        // console.log("i got here>", templatePath)
         // Read the HTML template synchronously
-        const htmlTemplate = fs.readFileSync(templatePath, "utf8");
-        console.log("i broke here", htmlTemplate)
-        if (!savedUser.personalName || !savedUser.email || !url) {
-           throw new Error('Missing required data for email template');
-         }
+        // const htmlTemplate = fs.readFileSync(templatePath, "utf8");
+        // console.log("i broke here", htmlTemplate)
+        // if (!savedUser.personalName || !savedUser.email || !url) {
+        //    throw new Error('Missing required data for email template');
+        //  }
          console.log("stopped g here")
         const emailTemplate = htmlTemplate
        .replace(/{{personalName}}/g, firstName)
