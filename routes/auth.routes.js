@@ -2,14 +2,13 @@ import express, { json } from 'express';
 //import { personalSignup, protect, businessSignup, loginUser, loginBusiness,   resetUserPassword, resetBusinessPassword, forgotUserPassword, forgotBusinessPassword,  uploadPicture, deleteUser, verifyUserEmail, verifyBusinessEmail } from '../controllers/authControllers.js';
 // protect, initiatePayment residentApplication, 
 import { personalSignup,  businessSignup, loginUser, loginBusiness,  resetUserPassword, resetBusinessPassword, forgotUserPassword, forgotBusinessPassword,  uploadPicture, deleteUser, verifyUserEmail, verifyBusinessEmail, } from '../controllers/authControllers.js';
-import { residentSchema, validateRequest } from '../validation/validation.js';
+//import { residentSchema, validateRequest } from '../validation/validation.js';
 
 
 import upload from '../public/multer.js';
 
 
 const router = express.Router();  
-
 router.post('/signup', personalSignup );
 router.post('/bussiness', businessSignup);
 router.post('/verify-user-email', verifyUserEmail)
