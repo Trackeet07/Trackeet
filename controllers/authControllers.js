@@ -10,19 +10,12 @@ import { v4 as uuidv4 } from 'uuid';
 import User from '../models/userModels.js';
 import Business from '../models/userModels.js';
 import catchAsync from '../middleware/catchAsync.js';
-//import { sendVerificationEmail } from "../utils/email/email-sender.js"
 import { emailService, tokenService } from "../services/index.js";
-//import Resident from '../models/resident.js';
 import { registerSchema, businessSchema, resetPasswordSchema, loginSchema } from '../validation/validation.js';
 import winston from 'winston';
 import { promisify } from 'util';
 const { error } = winston;
 
-
-
-//import { initiateTransfer } from "../utils/transferService.js"
-
-//const r//ave = new Flutterwave(process.env.FLUTTERWAVE_PUBLIC_KEY, process.env.FLUTTERWAVE_SECRET_KEY);
 
 
 
@@ -44,118 +37,6 @@ res.status(statusCode).json({
   })
 }
 
-
-export const residentApplication = catchAsync( async(req, res) => {
-  const validatedData = req.value.body;
-const newResident = await Resident.create(validatedData)
-
-const savedResident = await newResident.save();
-
-try {
-  const firstName = savedResident.fullName.split(/[, ]+/)[0]
-  console.log("FIRST NAME=", firstName)
-  const currentDir = path.dirname(new URL(import.meta.url).pathname);
-
-  // Normalize the path to remove any leading slash and avoid path issues on Windows
-  const normalizedCurrentDir = currentDir.replace(/^\/([A-Za-z])/, '$1');  // Fix leading slash for Windows
-  
-  // Debug the computed normalizedCurrentDir to ensure it's correct
-  console.log('Normalized current directory:', normalizedCurrentDir);
-  
-  // Resolve the path to 'emailTemplate.html'
-  const templatePath = path.join(normalizedCurrentDir, "../utils/templates/resident.html");
-  
-  // Read the HTML template synchronously
-  const htmlTemplate = fs.readFileSync(templatePath, "utf8");
-  if (!savedResident.fullName || !savedResident.email) {
-     throw new Error('Missing required data for email template');
-   }
-   console.log("OLA>>")
-  const emailTemplate = htmlTemplate
- .replace(/{{personalName}}/g, firstName)
- .replace(/{{email}}/g, savedResident.email)
-  await emailService.sendEmail(emailTemplate, "Your Grazac Talent City Residency Application is Under Review", savedResident.email);
-}catch(error) {
-  return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-   error: error.message,
-   message: "Internal server error"
-  })
-}
-return res.status(httpStatus.CREATED).json({ message: `Successful` });
-})
-
-// export const initiatePayment = async (req, res) => {
-//   const { email, amount, currency, tx_ref } = req.body;
-
-//   try {
-//     const payload = {
-//       reference: `trans-${Date.now()}`,
-//       amount: 100000,
-//       currency: "NGN",
-//       //redirect_url: "https://your-domain.com/payment-callback",
-//       customer: {
-//         email,
-//       },
-//       customizations: {
-//         title: "GRAZAC TALENT CITY",
-//         description: "Payment for Resident",
-//         logo: "https://your-domain.com/logo.png",
-//       },
-//     };
-//     console.log("Flutter",flw.Payment); // Check if `initialize` is available
-
-//     const response = await flw.Payment.initialize(payload);
-//     if (response.status === "success") {
-//       return res.status(200).json({
-//         message: "Payment initiated successfully",
-//         data: response,
-//       });
-//     } else {
-//       throw new Error(response.message);
-//     }
-//   } catch (error) {
-//     console.error("Payment initiation error:", error);
-//     res.status(500).json({ error: error.message });
-//   }
-// };
-
-
-// export const initiatePayment = catchAsync (async (req, res) => {
-  
-//   const { account_bank, account_number, amount, narration } = req.body;
-//   try {
-//     const response = await initiateTransfer({ account_bank, account_number,  amount, narration });//
-//     res.status(200).json({
-//       message: "Transfer initiated successfully",
-//       data: response,
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       message: "Error initiating transfer",
-//       error: error.message,
-//     });
-//   }
-// })
-
-// export const verifyPayment = async (req, res) => {
-//   const { transaction_id } = req.query;
-
-//   try {
-//     const response = await flw.Transaction.verify({ id: transaction_id });
-
-//     if (response.status === "success") {
-//       return res.status(200).json({
-//         message: "Payment verified successfully",
-//         data: response,
-//       });
-//     } else {
-//       throw new Error("Payment verification failed");
-//     }
-//   } catch (error) {
-//     console.error("Payment verification error:", error);
-//     res.status(500).json({ error: error.message });
-//   }
-// };
 
 
 
@@ -205,13 +86,13 @@ export const personalSignup = async (req, res, next) => {
       try {
         const firstName = savedUser.personalName.split(/[, ]+/)[0]
         console.log("FIRST NAME=", firstName)
-       const url = `${req.protocol}://${req.get("host")}/api/user/verifyEmail?email=${savedUser.email}&token=${verificationToken}`
+       const url = `http://localhost:3000/verify-email?token=${verificationToken}`
         // const currentDir = path.dirname(new URL(import.meta.url).pathname);
     
         const __filename = fileURLToPath(import.meta.url);
         const __dirname = path.dirname(__filename);
 
-        // Normalize the path for cross-platform compatibility
+        // Normalize the path for cross-platform compatibility 
         const templatePath = path.join(__dirname, "../utils/templates/emailVerify.html");
 
         // Check if the file exists
@@ -238,7 +119,7 @@ export const personalSignup = async (req, res, next) => {
         // if (!savedUser.personalName || !savedUser.email || !url) {
         //    throw new Error('Missing required data for email template');
         //  }
-         console.log("stopped g here")
+         
         const emailTemplate = htmlTemplate
        .replace(/{{personalName}}/g, firstName)
        .replace(/{{email}}/g, savedUser.email)
