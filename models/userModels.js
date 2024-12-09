@@ -21,15 +21,15 @@ const userSchema = new Schema({
         type: String,
         required: true
     },
-    role: {
-        type: String
-    },
-    industry: {
-        type: String
-    },
-    businessName: {
-        type: String
-    },
+    // role: {
+    //     type: String
+    // },
+    // industry: {
+    //     type: String
+    // },
+    // businessName: {
+    //     type: String
+    // },
     resetPasswordToken: {
         type: String,
       }, 
