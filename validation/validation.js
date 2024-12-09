@@ -57,7 +57,7 @@ const businessSchema = Joi.object({
     'any.required': 'Role is required'
   }),
   industryName: Joi.string().required().messages({
-    'any.required': 'Role is required'
+    'any.required': 'Industry is required'
   }),
   email: Joi.string().lowercase().email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }).required().messages({
     'string.base': 'Email should be a type of string',
