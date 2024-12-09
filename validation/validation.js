@@ -21,10 +21,10 @@ const registerSchema = Joi.object({
   personalName: Joi.string().required().messages({
     'any.required': 'Personal Name is required'
   }),
-  role: Joi.string().valid('admin', 'user').required().messages({
-    'any.only': 'Role must be one of: admin, user', 
-    'any.required': 'Role is required'
-  }),
+  // role: Joi.string().valid('admin', 'user').required().messages({
+  //   'any.only': 'Role must be one of: admin, user', 
+  //   'any.required': 'Role is required'
+  // }),
   email: Joi.string().lowercase().email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }).required().messages({
     'string.base': 'Email should be a type of string',
     'string.empty': 'Email cannot be empty',
@@ -53,8 +53,10 @@ const businessSchema = Joi.object({
   businessName: Joi.string().required().messages({
     'any.required': 'Personal Name is required'
   }),
-  role: Joi.string().valid('admin', 'user').required().messages({
-    'any.only': 'Role must be one of: admin, user', 
+  role: Joi.string().required().messages({
+    'any.required': 'Role is required'
+  }),
+  industryName: Joi.string().required().messages({
     'any.required': 'Role is required'
   }),
   email: Joi.string().lowercase().email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }).required().messages({
@@ -93,6 +95,36 @@ const expenseSchema = Joi.object({
     'any.required': 'Category is required'
   }),
 });
+const residentSchema = Joi.object({
+  fullName: Joi.string().required().messages({
+    'any.required': 'Full Name is required'
+  }),
+  email: Joi.string().lowercase().email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }).required().messages({
+    'string.base': 'Email should be a type of string',
+    'string.empty': 'Email cannot be empty',
+    'string.email': 'Email must be a valid email address',
+    'any.required': 'Email is required'
+  }),
+  phoneNumber: Joi.string()
+  .pattern(/^[0-9]{10}$/) // Validates exactly 10 digits (e.g., a US phone number)
+  .required()
+  .messages({
+    'string.pattern.base': 'Phone number must be exactly 10 digits',
+  }),
+  profession: Joi.string().required().messages({
+    'any.required': 'Profession is required'
+  }),
+  interest: Joi.string().required().messages({
+    'any.required': 'Information is required'
+  }),
+  residentType: Joi.string().required().messages({"string.base":"Type of resident required"}),
+  moveInDate: Joi.date().iso().required()
+  .messages({
+    'date.base': 'Birth date must be a valid date',
+    'date.format': 'Birth date must be in ISO format (YYYY-MM-DD)',
+  }) ,
+  
+})
 
 const budgetSchema = Joi.object({
   budgetName: Joi.string().required().messages({
@@ -253,6 +285,7 @@ export {
   otpSchema,
   bvnSchema,
   setLoginSchema,
+  residentSchema,
   loginSchema,
   registerSchema,
   businessSchema,
