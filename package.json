@@ -23,6 +23,7 @@
     "express-rate-limit": "^7.1.5",
     "flutterwave-node": "^1.2.2",
     "flutterwave-node-v3": "^1.1.12",
+    "git-filter-repo": "^0.0.30",
     "http-status": "^2.0.0",
     "ioredis": "^5.4.1",
     "joi": "^17.13.3",
