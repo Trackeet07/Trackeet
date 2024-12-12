@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 
 const validateRequest = (schema) => {
   return (req, res, next) => {
-    const { error } = schema.validate(req.body);
+    const { error } = schema.validate(req.body, {abortEarly: false});
     if (error) {
       return res.status(400).json({
         message: error.details[0].message,
@@ -51,12 +51,12 @@ const businessSchema = Joi.object({
     'any.required': 'Personal Name is required'
   }),
   businessName: Joi.string().required().messages({
-    'any.required': 'Personal Name is required'
+    'any.required': 'Business Name is required'
   }),
   role: Joi.string().required().messages({
     'any.required': 'Role is required'
   }),
-  industryName: Joi.string().required().messages({
+  industry: Joi.string().required().messages({
     'any.required': 'Industry is required'
   }),
   email: Joi.string().lowercase().email({ minDomainSegments: 2, tlds: { allow: ['com', 'net'] } }).required().messages({
@@ -93,6 +93,9 @@ const expenseSchema = Joi.object({
   }),
   category: Joi.string().required().messages({
     'any.required': 'Category is required'
+  }),
+  link: Joi.string().messages({
+    'any.required': 'Input Url Text'
   }),
 });
 const residentSchema = Joi.object({

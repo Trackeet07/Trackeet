@@ -4,7 +4,7 @@ import catchAsync from '../middleware/catchAsync.js';
 import httpStatus from 'http-status';
 // Controller function to add an expense
 export const addExpense = catchAsync(async (req, res) => {
-        const { error, value } = expenseSchema.validate(req.body, {abortEarly: false})
+        const { error, value } = req.value.body
 
         if(error) {
             console.log("Errors", error)
@@ -15,9 +15,9 @@ export const addExpense = catchAsync(async (req, res) => {
         // Get file path if an attachment is uploaded
         const attachment = req.file ? req.file.path : null;
 
-        req.body= { ...req.body, attachment: attachment }
+        req.value.body= { ...req.value.body, attachment: attachment }
         // Create a new expense
-        const newExpense = await Expense.create(req.body);
+        const newExpense = await Expense.create(req.value.body);
 
         // Save to database 
         const savedExpense = await newExpense.save();

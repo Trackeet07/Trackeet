@@ -28,7 +28,7 @@ const businessSchema = new Schema({
     role: {
         type: String
     },
-    industryName: {
+    industry: {
         type: String
     },
     businessName: {

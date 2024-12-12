@@ -1,23 +1,21 @@
 // budgetController.js
 import Budget from '../models/budgetModels.js';
-import { budgetSchema } from '../validation/validation.js';
 import catchAsync from '../middleware/catchAsync.js';
 import httpStatus from 'http-status';
-import jwt from 'jsonwebtoken';
 
 
 // Controller function to add a budget
 export const createBudget = catchAsync (async (req, res) => {
-        const { error, value } = budgetSchema.validate(req.body, {abortEarly: false})
+        const { error, value } = req.value.body
         if(error) {
             console.log("Errors", error)
         return res.status(httpStatus.NOT_FOUND).json({
             message: error.message
         })
     }
-    req.body = { ...value, user:req.user._id}
+    req.value.body = { ...value, user:req.user._id}
         // Create a new budget
-        const newBudget = await Budget.create(req.body);
+        const newBudget = await Budget.create(req.value.body);
         // Save to database
         const savedBudget = await newBudget.save();
 

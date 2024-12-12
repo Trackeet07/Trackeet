@@ -1,29 +1,29 @@
 import express, { json } from 'express';
-//import { personalSignup, protect, businessSignup, loginUser, loginBusiness,   resetUserPassword, resetBusinessPassword, forgotUserPassword, forgotBusinessPassword,  uploadPicture, deleteUser, verifyUserEmail, verifyBusinessEmail } from '../controllers/authControllers.js';
-// protect, initiatePayment residentApplication, 
-import { personalSignup,  businessSignup, loginUser, loginBusiness,  resetUserPassword, resetBusinessPassword, forgotUserPassword, forgotBusinessPassword,  uploadPicture, deleteUser, verifyUserEmail, verifyBusinessEmail, } from '../controllers/authControllers.js';
-//import { residentSchema, validateRequest } from '../validation/validation.js';
+import { personalSignup,  businessSignup, loginUser, loginBusiness,  resetUserPassword, resetBusinessPassword, forgotUserPassword, forgotBusinessPassword,  uploadPicture, uploadBusinessPicture, deleteUser, verifyUserEmail, verifyBusinessEmail, deleteBusiness} from '../controllers/authControllers.js';
+import { validateRequest, registerSchema, businessSchema, expenseSchema, budgetSchema, loginSchema, forgetPassSchema, updatePassword, resetPasswordSchema  } from '../validation/validation.js';
 
 
 import upload from '../public/multer.js';
 
 
-const router = express.Router();  
-router.post('/signup', personalSignup );
-router.post('/bussiness', businessSignup);
-router.post('/verify-user-email', verifyUserEmail)
-router.post('/verify-business-email', verifyBusinessEmail)
-router.post('/login-user', loginUser );
-//router.post("/resident", validateRequest(residentSchema), residentApplication)
+const router = express.Router(); 
 
-//router.post("/residentPayment", initiatePayment )
-router.post('/login-business', loginBusiness );
+//USER
+router.post('/signup', validateRequest(registerSchema),personalSignup );
+router.post('/verify-user-email', verifyUserEmail)
+router.post('/login-user', validateRequest(loginSchema), loginUser );
+router.post('/forgot-user-password', validateRequest(forgetPassSchema), forgotUserPassword );
 router.post('/reset-user', resetUserPassword );
-router.post('/reset-business', resetBusinessPassword );
-router.post('/forgot-user-password', forgotUserPassword );
-router.post('/forgot-business-password', forgotBusinessPassword );
-router.post('/picture/:id', upload.single("picture"), uploadPicture );
 router.delete('/delete/:id', deleteUser);
+router.post('/picture/:id', upload.single("picture"), uploadPicture );
+ //Business
+router.post('/business', validateRequest(businessSchema), businessSignup);
+router.post('/verify-business-email', verifyBusinessEmail)
+router.post('/login-business', validateRequest(loginSchema), loginBusiness );
+router.post('/reset-business', resetBusinessPassword );
+router.post('/forgot-business-password', validateRequest(forgetPassSchema), forgotBusinessPassword );
+router.delete('/delete-business/:id', deleteBusiness);
+router.post('/business-picture/:id', upload.single("picture"), uploadBusinessPicture );
 
 
 export default router;
