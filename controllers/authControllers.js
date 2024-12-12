@@ -80,7 +80,7 @@ export const personalSignup = async (req, res, next) => {
       const newUser = await User.create(validatedUserData);
 
       const savedUser = await newUser.save();
-      const response = _.omit(savedUser.toObject(), ["password", "passwordResetToken", "resetPasswordToken"])
+      //const response = _.omit(savedUser.toObject(), ["password", "passwordResetToken", "resetPasswordToken"])
       
       try {
         const firstName = savedUser.personalName.split(/[, ]+/)[0]
@@ -139,7 +139,7 @@ export const personalSignup = async (req, res, next) => {
         })
     }
 
-      return res.status(httpStatus.CREATED).json({ message: `You're almost there! We've sent an email verificaion link to ${savedUser.email}.`,response });
+      return res.status(httpStatus.CREATED).json({ message: `You're almost there! We've sent an email verificaion link to ${savedUser.email}.` });
 } catch(error) {
   console.log("Error in personalSignup controller:", error);
   return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
@@ -554,7 +554,7 @@ export const businessSignup = async (req, res) => {
 console.log(newBusiness); 
 
    const savedBusiness = await newBusiness.save();
-   const response = _.omit(savedBusiness.toObject(), ["password", "passwordResetToken", "resetPasswordToken"])
+   //const response = _.omit(savedBusiness.toObject(), ["password", "passwordResetToken", "resetPasswordToken"])
    try {
     const firstName = savedBusiness.personalName.split(/[, ]+/)[0]
    const url = `${req.protocol}://${req.get("host")}/api/user/verify-business-email?email=${savedBusiness.email}&token=${verifyBusinessToken}`
@@ -604,7 +604,7 @@ console.log("FirstName", firstName)
     })
 }
 
-    return res.status(httpStatus.CREATED).json({ message: "Business saved successfully", response });
+    return res.status(httpStatus.CREATED).json({ message: "Business saved successfully",});
   } catch(error) {
     console.log("Error in personalSignup controller:", error);
     return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
