@@ -79,7 +79,7 @@ export const personalSignup = async (req, res, next) => {
 
       const newUser = await User.create(validatedUserData);
 
-      //const savedUser = await newUser.save();
+      const savedUser = await newUser.save();
       const response = _.omit(savedUser.toObject(), ["password", "passwordResetToken", "resetPasswordToken"])
       
       try {
