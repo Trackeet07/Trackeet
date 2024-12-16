@@ -151,19 +151,19 @@ export const personalSignup = async (req, res, next) => {
 
 export const verifyUserEmail =async (req, res) => {
 try {
-    const { email, token } = req.query;
-    console.log("Token", token)
-    if(!(token && email)) {
-    return res.status(httpStatus.BAD_REQUEST).json({
-        message: "Please insert a valid URL"
-    })
-  }
-    const user = await User.findOne({ email });
-    console.log("QUERIED USER", user)
-    if(!user) {
-      return res.status(httpStatus.BAD_REQUEST).json({ 
-          message: 'User not found signup and verify'})
-  }
+  //   const { email, token } = req.query;
+  //   console.log("Token", token)
+  //   if(!(token && email)) {
+  //   return res.status(httpStatus.BAD_REQUEST).json({
+  //       message: "Please insert a valid URL"
+  //   })
+  // }
+  //   const user = await User.findOne({ email });
+  //   console.log("QUERIED USER", user)
+  //   if(!user) {
+  //     return res.status(httpStatus.BAD_REQUEST).json({ 
+  //         message: 'User not found signup and verify'})
+  // }
   if(user.isVerified === true) {
     // return next(new AppError('User already verified you can Login now', 400))
     return res.status(httpStatus.FORBIDDEN).json({
