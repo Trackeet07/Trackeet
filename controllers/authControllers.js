@@ -558,7 +558,7 @@ console.log(newBusiness);
    try {
     const firstName = savedBusiness.personalName.split(/[, ]+/)[0]
    //const url = `${req.protocol}://${req.get("host")}/api/user/verify-business-email?email=${savedBusiness.email}&token=${verifyBusinessToken}`
-  const url = `http://localhost:3000/verified-business-email?token=${verificationToken}`
+  const url = `http://localhost:3000/verified-business-email?token=${verifyBusinessToken}`
     //const currentDir = path.dirname(new URL(import.meta.url).pathname);
 
     // // Normalize the path to remove any leading slash and avoid path issues on Windows
