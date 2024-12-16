@@ -79,14 +79,14 @@ export const personalSignup = async (req, res, next) => {
 
       const newUser = await User.create(validatedUserData);
 
-      const savedUser = await newUser.save();
-      //const response = _.omit(savedUser.toObject(), ["password", "passwordResetToken", "resetPasswordToken"])
+      //const savedUser = await newUser.save();
+      const response = _.omit(savedUser.toObject(), ["password", "passwordResetToken", "resetPasswordToken"])
       
       try {
         const firstName = savedUser.personalName.split(/[, ]+/)[0]
         console.log("FIRST NAME=", firstName)
-        const url = `${req.protocol}://${req.get("host")}/api/user/verifyEmail?email=${savedUser.email}&token=${verificationToken}`
-      //const url = `http://localhost:3000/verified-email?token=${verificationToken}`
+        //const url = `${req.protocol}://${req.get("host")}/api/user/verifyEmail?email=${savedUser.email}&token=${verificationToken}`
+      const url = `http://localhost:3000/verified-email?token=${verificationToken}`
        //const currentDir = path.dirname(new URL(import.meta.url).pathname);
     
         const __filename = fileURLToPath(import.meta.url);
@@ -139,7 +139,7 @@ export const personalSignup = async (req, res, next) => {
         })
     }
 
-      return res.status(httpStatus.CREATED).json({ message: `You're almost there! We've sent an email verificaion link to ${savedUser.email}.` });
+      return res.status(httpStatus.CREATED).json({ message: `You're almost there! We've sent an email verificaion link to ${savedUser.email}.`, response });
 } catch(error) {
   console.log("Error in personalSignup controller:", error);
   return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
@@ -554,11 +554,11 @@ export const businessSignup = async (req, res) => {
 console.log(newBusiness); 
 
    const savedBusiness = await newBusiness.save();
-   //const response = _.omit(savedBusiness.toObject(), ["password", "passwordResetToken", "resetPasswordToken"])
+   const response = _.omit(savedBusiness.toObject(), ["password", "passwordResetToken", "resetPasswordToken"])
    try {
     const firstName = savedBusiness.personalName.split(/[, ]+/)[0]
-   const url = `${req.protocol}://${req.get("host")}/api/user/verify-business-email?email=${savedBusiness.email}&token=${verifyBusinessToken}`
-    //const url = `http://localhost:3000/verified-businnes-email?token=${verificationToken}`
+   //const url = `${req.protocol}://${req.get("host")}/api/user/verify-business-email?email=${savedBusiness.email}&token=${verifyBusinessToken}`
+  const url = `http://localhost:3000/verified-business-email?token=${verificationToken}`
     //const currentDir = path.dirname(new URL(import.meta.url).pathname);
 
     // // Normalize the path to remove any leading slash and avoid path issues on Windows
@@ -604,7 +604,7 @@ console.log("FirstName", firstName)
     })
 }
 
-    return res.status(httpStatus.CREATED).json({ message: "Business saved successfully",});
+    return res.status(httpStatus.CREATED).json({ message: "Business saved successfully", response});
   } catch(error) {
     console.log("Error in personalSignup controller:", error);
     return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
