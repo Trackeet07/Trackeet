@@ -15,7 +15,7 @@ import { registerSchema, businessSchema, resetPasswordSchema, loginSchema } from
 import winston from 'winston';
 import { promisify } from 'util';
 const { error } = winston;
-
+ 
 
 const signToken = id => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -151,25 +151,25 @@ export const personalSignup = async (req, res, next) => {
 
 export const verifyUserEmail =async (req, res) => {
 try {
-  //   const { email, token } = req.query;
+  const { token } = req.query;
   //   console.log("Token", token)
   //   if(!(token && email)) {
   //   return res.status(httpStatus.BAD_REQUEST).json({
   //       message: "Please insert a valid URL"
   //   })
   // }
-  //   const user = await User.findOne({ email });
-  //   console.log("QUERIED USER", user)
-  //   if(!user) {
-  //     return res.status(httpStatus.BAD_REQUEST).json({ 
-  //         message: 'User not found signup and verify'})
-  // }
-  if(user.isVerified === true) {
-    // return next(new AppError('User already verified you can Login now', 400))
-    return res.status(httpStatus.FORBIDDEN).json({
-        message: 'user already veriffied you can Login now'
-    })
-}
+     const user = await User.findOne({ confirmEmailToken:token });
+    console.log("QUERIED USER", user)
+    if(!user) {
+      return res.status(httpStatus.BAD_REQUEST).json({ 
+          message: 'User not found signup and verify'})
+  }
+//   if(user.isVerified === true) {
+//     // return next(new AppError('User already verified you can Login now', 400))
+//     return res.status(httpStatus.FORBIDDEN).json({
+//         message: 'user already veriffied you can Login now'
+//     })
+// }
 if(+token !== user.confirmEmailToken) {
   console.log("Token Type:", typeof token);
   console.log("Expected Token Type:", typeof user.confirmEmailToken);
@@ -616,25 +616,25 @@ console.log("FirstName", firstName)
 
 export const verifyBusinessEmail =async (req, res) => {
   try {
-      const { email, token } = req.query;
-      console.log("Token", token)
-      if(!(token && email)) {
-      return res.status(httpStatus.BAD_REQUEST).json({
-          message: "Please insert a valid URL"
-      })
-    }
-      const business = await Business.findOne({ email });
+      const { token } = req.query;
+    //   console.log("Token", token)
+    //   if(!(token && email)) {
+    //   return res.status(httpStatus.BAD_REQUEST).json({
+    //       message: "Please insert a valid URL"
+    //   })
+    // }
+      const business = await Business.findOne({ confirmEmailToken: token });
       console.log("QUERIED Business", business)
       if(!business) {
         return res.status(httpStatus.BAD_REQUEST).json({
             message: 'User not found signup and verify'})
     }
-    if(business.isVerified === true) {
-      // return next(new AppError('business already verified you can Login now', 400))
-      return res.status(httpStatus.FORBIDDEN).json({
-          message: 'business already veriffied you can Login now'
-      })
-    }
+    // if(business.isVerified === true) {
+    //   // return next(new AppError('business already verified you can Login now', 400))
+    //   return res.status(httpStatus.FORBIDDEN).json({
+    //       message: 'business already veriffied you can Login now'
+    //   })
+    // }
     if(+token !== business.confirmEmailToken) {
     console.log("Token Type:", typeof token);
     console.log("Expected Token Type:", typeof business.confirmEmailToken);
