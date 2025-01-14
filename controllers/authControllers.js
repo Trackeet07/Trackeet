@@ -284,7 +284,7 @@ export const forgotUserPassword = async (req, res) => {
      try {
       const firstName = user.personalName.split(/[, ]+/)[0]
       //const url = `${req.protocol}://${req.get("host")}/api/user/reset-user?token=${resetToken}`;
-      const url = `http://localhost:3000/setpassword${resetToken}`
+      const url = `http://localhost:3000/setpassword?token=${resetToken}`
       //  const currentDir = path.dirname(new URL(import.meta.url).pathname);
    
       //   // Normalize the path to remove any leading slash and avoid path issues on Windows
