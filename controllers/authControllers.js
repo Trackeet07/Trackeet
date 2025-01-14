@@ -85,7 +85,7 @@ export const personalSignup = async (req, res, next) => {
       try {
         const firstName = savedUser.personalName.split(/[, ]+/)[0]
         console.log("FIRST NAME=", firstName)
-        //const url = `${req.protocol}://${req.get("host")}/api/user/verifyEmail?email=${savedUser.email}&token=${verificationToken}`
+       // const url = `${req.protocol}://${req.get("host")}/api/user/verifyEmail?email=${savedUser.email}&token=${verificationToken}`
       const url = `http://localhost:3000/verified-email?token=${verificationToken}`
        //const currentDir = path.dirname(new URL(import.meta.url).pathname);
     
@@ -283,7 +283,8 @@ export const forgotUserPassword = async (req, res) => {
     
      try {
       const firstName = user.personalName.split(/[, ]+/)[0]
-      const url = `${req.protocol}://${req.get("host")}/api/user/reset-user?token=${resetToken}`;
+      //const url = `${req.protocol}://${req.get("host")}/api/user/reset-user?token=${resetToken}`;
+      const url = `http://localhost:3000/setpassword${resetToken}`
       //  const currentDir = path.dirname(new URL(import.meta.url).pathname);
    
       //   // Normalize the path to remove any leading slash and avoid path issues on Windows
@@ -439,32 +440,32 @@ console.log("Template content loaded successfully");
    } 
   }
 
-  export const uploadPicture = catchAsync(async (req, res) => {
+  export const uploadPicture = async (req, res) => {
   // Ensure Multer is configured correctly
+try {
   if (!req.file) {
     return res.status(httpStatus.BAD_REQUEST).json({ message: "No file uploaded" });
   }
-    const user = await User.findOne({ _id: req.params.id });
 
-        if (!user) {
-            return res.status(httpStatus.BAD_REQUEST).json({ message: "User not found" });
-        }
+     const result = await cloudinary.v2.uploader.upload(req.file.path);
 
-        const result = await cloudinary.v2.uploader.upload(req.file.path);
-
-        const updatedUser = await User.findByIdAndUpdate(
-          {
-            _id: req.params.id,
-          },
-            { image: result.secure_url },
-            { new: true } 
-        );
+       req.user.image = result.secure_url;
+       const updatedUser = await req.user.save()
 
         return res.status(httpStatus.CREATED).json({
-            message: "Picture uploaded successfully",
-            data: updatedUser,
+            // message: "Picture uploaded successfully",
+            // data: updatedUser,
+            id: updatedUser._id,
+            email: updatedUser.email,
+            username: updatedUser.username,
+            image: updatedUser.image,
         });
-});
+} catch(error) {
+  console.log("Internal Error Uploading Picture", error.message)
+  res.status(httpStatus.INTERNAL_SERVER_ERROR).json({messge: "Internal server Error"})
+}
+  
+};
 
 
   export const deleteUser = catchAsync (async (req, res) => {
@@ -748,7 +749,8 @@ try {
         
          try {
           const firstName = business.personalName.split(/[, ]+/)[0]
-          const url = `${req.protocol}://${req.get("host")}/api/user/reset-business?token=${businessResetToken}`;
+          //const url = `${req.protocol}://${req.get("host")}/api/user/reset-business?token=${businessResetToken}`;
+          const url = `http://localhost:3000/setpassword-business${businessResetToken}`
           //  const currentDir = path.dirname(new URL(import.meta.url).pathname);
        
           //   // Normalize the path to remove any leading slash and avoid path issues on Windows
