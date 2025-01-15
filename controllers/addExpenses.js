@@ -3,7 +3,15 @@ import Expense from '../models/expensesModels.js';
 import catchAsync from '../middleware/catchAsync.js';
 import httpStatus from 'http-status';
 // Controller function to add an expense
-export const addExpense = catchAsync(async (req, res) => {
+export const addExpense = async (req, res) => {
+    try {
+
+    } catch(error) {
+        console.log("EXPENSES ERROR", error.message)
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+            message: "An error occurred while adding expense."
+        });
+    }
         const { error, value } = req.value.body
 
         if(error) {
@@ -27,4 +35,4 @@ export const addExpense = catchAsync(async (req, res) => {
             message: "Expense added successfully.",
             data: savedExpense
         });
-});
+    }

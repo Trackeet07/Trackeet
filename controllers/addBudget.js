@@ -5,17 +5,14 @@ import httpStatus from 'http-status';
 
 
 // Controller function to add a budget
-export const createBudget = catchAsync (async (req, res) => {
-        const { error, value } = req.value.body
-        if(error) {
-            console.log("Errors", error)
-        return res.status(httpStatus.NOT_FOUND).json({
-            message: error.message
-        })
-    }
-    req.value.body = { ...value, user:req.user._id}
+export const createBudget = async (req, res) => {
+
+    try {
+        let validatedData = req.value.body
+   
+    validatedData = { ...validatedData, user:req.user._id}
         // Create a new budget
-        const newBudget = await Budget.create(req.value.body);
+        const newBudget = await Budget.create(validatedData);
         // Save to database
         const savedBudget = await newBudget.save();
 
@@ -24,7 +21,14 @@ export const createBudget = catchAsync (async (req, res) => {
             message: "Budget added successfully.",
             data: savedBudget
         });
-});
+    } catch(error) {
+        console.log("BUDGET ERROR:", error.message)
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
+            message: "An error occurred while adding expense."
+          });
+    }
+       
+};
 
 
 //GEt Budget

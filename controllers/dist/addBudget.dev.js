@@ -20,58 +20,57 @@ function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { va
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 // Controller function to add a budget
-var createBudget = (0, _catchAsync["default"])(function _callee(req, res) {
-  var _req$value$body, error, value, newBudget, savedBudget;
-
-  return regeneratorRuntime.async(function _callee$(_context) {
+var createBudget = function createBudget(req, res) {
+  var validatedData, newBudget, savedBudget;
+  return regeneratorRuntime.async(function createBudget$(_context) {
     while (1) {
       switch (_context.prev = _context.next) {
         case 0:
-          _req$value$body = req.value.body, error = _req$value$body.error, value = _req$value$body.value;
-
-          if (!error) {
-            _context.next = 4;
-            break;
-          }
-
-          console.log("Errors", error);
-          return _context.abrupt("return", res.status(_httpStatus["default"].NOT_FOUND).json({
-            message: error.message
-          }));
-
-        case 4:
-          req.value.body = _objectSpread({}, value, {
+          _context.prev = 0;
+          validatedData = req.value.body;
+          validatedData = _objectSpread({}, validatedData, {
             user: req.user._id
           }); // Create a new budget
 
-          _context.next = 7;
-          return regeneratorRuntime.awrap(_budgetModels["default"].create(req.value.body));
+          _context.next = 5;
+          return regeneratorRuntime.awrap(_budgetModels["default"].create(validatedData));
 
-        case 7:
+        case 5:
           newBudget = _context.sent;
-          _context.next = 10;
+          _context.next = 8;
           return regeneratorRuntime.awrap(newBudget.save());
 
-        case 10:
+        case 8:
           savedBudget = _context.sent;
           // Send success response
           res.status(201).json({
             message: "Budget added successfully.",
             data: savedBudget
           });
+          _context.next = 16;
+          break;
 
         case 12:
+          _context.prev = 12;
+          _context.t0 = _context["catch"](0);
+          console.log("BUDGET ERROR:", _context.t0.message);
+          return _context.abrupt("return", res.status(_httpStatus["default"].INTERNAL_SERVER_ERROR).json({
+            message: "An error occurred while adding expense."
+          }));
+
+        case 16:
         case "end":
           return _context.stop();
       }
     }
-  });
-}); //GEt Budget
+  }, null, null, [[0, 12]]);
+}; //GEt Budget
+
 
 exports.createBudget = createBudget;
-var getBudget = (0, _catchAsync["default"])(function _callee2(req, res, next) {
+var getBudget = (0, _catchAsync["default"])(function _callee(req, res, next) {
   var budget;
-  return regeneratorRuntime.async(function _callee2$(_context2) {
+  return regeneratorRuntime.async(function _callee$(_context2) {
     while (1) {
       switch (_context2.prev = _context2.next) {
         case 0:
@@ -108,9 +107,9 @@ var getBudget = (0, _catchAsync["default"])(function _callee2(req, res, next) {
 }); // Update budget
 
 exports.getBudget = getBudget;
-var updateBudget = (0, _catchAsync["default"])(function _callee3(req, res, next) {
+var updateBudget = (0, _catchAsync["default"])(function _callee2(req, res, next) {
   var budget;
-  return regeneratorRuntime.async(function _callee3$(_context3) {
+  return regeneratorRuntime.async(function _callee2$(_context3) {
     while (1) {
       switch (_context3.prev = _context3.next) {
         case 0:
@@ -150,9 +149,9 @@ var updateBudget = (0, _catchAsync["default"])(function _callee3(req, res, next)
 }); //DELETE BUDGET
 
 exports.updateBudget = updateBudget;
-var deleteBudget = (0, _catchAsync["default"])(function _callee4(req, res, next) {
+var deleteBudget = (0, _catchAsync["default"])(function _callee3(req, res, next) {
   var budget;
-  return regeneratorRuntime.async(function _callee4$(_context4) {
+  return regeneratorRuntime.async(function _callee3$(_context4) {
     while (1) {
       switch (_context4.prev = _context4.next) {
         case 0:
@@ -186,9 +185,9 @@ var deleteBudget = (0, _catchAsync["default"])(function _callee4(req, res, next)
 }); //GET  ALL BUDGET
 
 exports.deleteBudget = deleteBudget;
-var getAllBudget = (0, _catchAsync["default"])(function _callee5(req, res, next) {
+var getAllBudget = (0, _catchAsync["default"])(function _callee4(req, res, next) {
   var page, limit, skip, numBudgets, budgets;
-  return regeneratorRuntime.async(function _callee5$(_context5) {
+  return regeneratorRuntime.async(function _callee4$(_context5) {
     while (1) {
       switch (_context5.prev = _context5.next) {
         case 0:

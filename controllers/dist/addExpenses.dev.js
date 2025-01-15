@@ -22,17 +22,30 @@ function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { va
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 // Controller function to add an expense
-var addExpense = (0, _catchAsync["default"])(function _callee(req, res) {
+var addExpense = function addExpense(req, res) {
   var _req$value$body, error, value, attachment, newExpense, savedExpense;
 
-  return regeneratorRuntime.async(function _callee$(_context) {
+  return regeneratorRuntime.async(function addExpense$(_context) {
     while (1) {
       switch (_context.prev = _context.next) {
         case 0:
+          _context.prev = 0;
+          _context.next = 7;
+          break;
+
+        case 3:
+          _context.prev = 3;
+          _context.t0 = _context["catch"](0);
+          console.log("EXPENSES ERROR", _context.t0.message);
+          return _context.abrupt("return", res.status(_httpStatus["default"].INTERNAL_SERVER_ERROR).json({
+            message: "An error occurred while adding expense."
+          }));
+
+        case 7:
           _req$value$body = req.value.body, error = _req$value$body.error, value = _req$value$body.value;
 
           if (!error) {
-            _context.next = 4;
+            _context.next = 11;
             break;
           }
 
@@ -41,22 +54,22 @@ var addExpense = (0, _catchAsync["default"])(function _callee(req, res) {
             message: error.message
           }));
 
-        case 4:
+        case 11:
           // Get file path if an attachment is uploaded
           attachment = req.file ? req.file.path : null;
           req.value.body = _objectSpread({}, req.value.body, {
             attachment: attachment
           }); // Create a new expense
 
-          _context.next = 8;
+          _context.next = 15;
           return regeneratorRuntime.awrap(_expensesModels["default"].create(req.value.body));
 
-        case 8:
+        case 15:
           newExpense = _context.sent;
-          _context.next = 11;
+          _context.next = 18;
           return regeneratorRuntime.awrap(newExpense.save());
 
-        case 11:
+        case 18:
           savedExpense = _context.sent;
           // Send success response
           res.status(201).json({
@@ -64,11 +77,12 @@ var addExpense = (0, _catchAsync["default"])(function _callee(req, res) {
             data: savedExpense
           });
 
-        case 13:
+        case 20:
         case "end":
           return _context.stop();
       }
     }
-  });
-});
+  }, null, null, [[0, 3]]);
+};
+
 exports.addExpense = addExpense;
