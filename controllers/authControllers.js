@@ -466,7 +466,7 @@ try {
   res.status(httpStatus.INTERNAL_SERVER_ERROR).json({messge: "Internal server Error"})
 }
   
-}; M
+}; 
 
 
   export const deleteUser = catchAsync (async (req, res) => {
