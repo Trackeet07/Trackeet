@@ -13,6 +13,10 @@ var _authControllers = require("../controllers/authControllers.js");
 
 var _validation = require("../validation/validation.js");
 
+var _auth = _interopRequireDefault(require("../middleware/auth.js"));
+
+var _picValid = _interopRequireDefault(require("../middleware/picValid.js"));
+
 var _multer = _interopRequireDefault(require("../public/multer.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
@@ -30,7 +34,7 @@ router.post('/login-user', (0, _validation.validateRequest)(_validation.loginSch
 router.post('/forgot-user-password', (0, _validation.validateRequest)(_validation.forgetPassSchema), _authControllers.forgotUserPassword);
 router.post('/reset-user', _authControllers.resetUserPassword);
 router["delete"]('/delete/:id', _authControllers.deleteUser);
-router.post('/picture/:id', _multer["default"].single("picture"), _authControllers.uploadPicture); //Business
+router.post('/picture', _auth["default"], _multer["default"].single("picture"), _authControllers.uploadPicture); //Business
 
 router.post('/business', (0, _validation.validateRequest)(_validation.businessSchema), _authControllers.businessSignup);
 router.post('/verify-business-email', _authControllers.verifyBusinessEmail);
