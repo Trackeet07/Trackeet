@@ -54,7 +54,7 @@ process.on("uncaughtException", err=> {
   })
   
 
-  const port = process.env.PORT || 1800;
+  const port = process.env.PORT || 1700;
   dotenv.config();
 
   const server = app.listen(port, async () => {

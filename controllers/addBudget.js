@@ -2,6 +2,8 @@
 import Budget from '../models/budgetModels.js';
 import catchAsync from '../middleware/catchAsync.js';
 import httpStatus from 'http-status';
+import mongoose from "mongoose";
+import User from '../models/userModels.js';
 
 
 // Controller function to add a budget
@@ -110,3 +112,54 @@ export const getAllBudget = catchAsync(async (req, res, next) => {
     });
 });
     
+
+
+export const getAllBudgetUser = async (req, res, next) => {
+    try {
+        const userID = req.user._id
+        console.log("USER ID:", userID)
+        if (!req.user || !userID || !mongoose.Types.ObjectId.isValid(req.user._id)) {
+            return res.status(400).json({
+              status: 'error',
+              message: 'Invalid user ID',
+            });
+            console.log("EERROR:", error)
+          }
+          const findUser = await User.findById(userID)
+          console.log("found User", findUser)
+          if (!findUser) {
+            return res.status(404).json({ status: 'error', message: 'User not found' });
+          }
+          let query = { author: findUser._id }
+          const page = parseInt(req.query.page, 10) || 1;
+          const limit = parseInt(req.query.limit, 3) || 3;
+          const skip = (page - 1) * limit;
+      
+          // Fetch total number of books
+          const numBudgets = await Budget.countDocuments(query);
+      
+          // Check if the requested page exists
+          if (skip >= numBudgets) {
+              return res.status(404).json({
+                  status: 'fail',
+                  message: 'This page does not exist'
+              });
+          }
+          // Fetch books with pagination
+          const budgets = await Budget.find(query).skip(skip).limit(limit);
+          // Respond with paginated budgets
+    res.status(200).json({
+        status: 'success',
+        results: budgets.length,
+        data: {
+            budgets,
+            totalPages: Math.ceil(numBudgets / limit),
+            currentPage: page
+        }
+    });
+
+    }catch(error) {
+        console.log("An Error Occured", error.message)
+        return res.status(500).json({message: "An Internal Error Occured" })
+    }
+}

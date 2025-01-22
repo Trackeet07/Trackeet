@@ -49,6 +49,20 @@ const  isAuthenticated = async(req, res, next) => {
       if (error.name === 'JsonWebTokenError') {
         return res.status(401).json({ message: 'Invalid token' });
       }
+      if (error.name === 'CastError') {
+        return res.status(400).json({ message: `Invalid ${err.path}: ${err.value}` });
+      }
+    
+      if (error.name === 'ValidationError') {
+        return res.status(400).json({ message: err.message });
+      }
+    
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({ message: 'Token has expired.' });
+      }
+      if (error.name === 'TokenError') {
+        return res.status(401).json({ message: 'There was an error with your Token' });
+      }
      return res.status(500).json({ message: 'Internal Error here' });
    // return res.redirect('/login'); // Redirect if token is invalid
        

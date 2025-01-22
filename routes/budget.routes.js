@@ -1,6 +1,6 @@
 // budgetRoutes.js
 import express from 'express';
-import { createBudget, getBudget, updateBudget, deleteBudget, getAllBudget } from '../controllers/addBudget.js';
+import { createBudget, getBudget, updateBudget, deleteBudget, getAllBudget, getAllBudgetUser } from '../controllers/addBudget.js';
 import { protect } from '../controllers/authControllers.js';
 import { validateRequest,  budgetSchema,  } from '../validation/validation.js';
 import isAuthenticated from '../middleware/auth.js';
@@ -15,6 +15,7 @@ router.get('/getBudget/:id',  getBudget);
 router.patch('/updateBudget/:id',  updateBudget);
 router.delete('/deleteBudget/:id',  deleteBudget);
 router.get('/getAll',  getAllBudget);
+router.get('/getAllBudgetUser',  getAllBudgetUser);
 
 
 export default router;

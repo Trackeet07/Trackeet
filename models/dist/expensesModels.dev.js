@@ -14,6 +14,11 @@ var expenseSchema = new _mongoose["default"].Schema({
     type: String,
     required: true
   },
+  author: {
+    type: _mongoose["default"].Schema.Types.ObjectId,
+    ref: 'User' // Links to the User 
+
+  },
   amount: {
     type: Number,
     required: true
