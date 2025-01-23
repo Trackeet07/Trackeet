@@ -84,7 +84,7 @@ export const deleteBudget = catchAsync(async (req, res, next)=> {
 export const getAllBudget = catchAsync(async (req, res, next) => {
     // Get page and limit from query parameters, default to page 1 and limit 10
     const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 3) || 3;
+    const limit = parseInt(req.query.limit, 100) || 100;
     const skip = (page - 1) * limit;
 
     // Fetch total number of books
@@ -132,7 +132,7 @@ export const getAllBudgetUser = async (req, res, next) => {
           }
           let query = { author: findUser._id }
           const page = parseInt(req.query.page, 10) || 1;
-          const limit = parseInt(req.query.limit, 3) || 3;
+          const limit = parseInt(req.query.limit, 100) || 100;
           const skip = (page - 1) * limit;
       
           // Fetch total number of books
