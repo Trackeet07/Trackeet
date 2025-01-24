@@ -86,7 +86,7 @@ export const personalSignup = async (req, res, next) => {
         const firstName = savedUser.personalName.split(/[, ]+/)[0]
         console.log("FIRST NAME=", firstName)
        // const url = `${req.protocol}://${req.get("host")}/api/user/verifyEmail?email=${savedUser.email}&token=${verificationToken}`
-      const url = `http://localhost:3000/verified-email?token=${verificationToken}`
+      const url = `https://trackeet-pcu3.vercel.app/verified-email?token=${verificationToken}`
        //const currentDir = path.dirname(new URL(import.meta.url).pathname);
     
         const __filename = fileURLToPath(import.meta.url);
@@ -535,6 +535,52 @@ try {
       });
   });
 
+
+
+  export const setNewUserPassword = async (req, res) => {
+    try {
+      let validatedData = req.value.body;
+  
+      // Get userId from the token (populated by the `authenticate` middleware)
+      const userId = req.user.id;
+  
+      // Find the user to verify the former password
+      const user = await User.findById(userId).select('+password');
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      if(!(await passwordCompare(validatedData.currentPassword, user.password))) {
+        console.log("User PAssword",user.password)
+        return res.status(httpStatus.UNAUTHORIZED).json({
+            message:"Invalid password"
+        
+    });
+      }
+      const hashedPassword = await passwordHash(validatedData.newPassword);
+  
+      // Update the password
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: userId },
+        { $set: { password: hashedPassword } },
+        { new: true, runValidators: true }
+      );
+  
+      if (!updatedUser) {
+        return res.status(500).json({ message: 'Failed to update password' });
+      }
+  
+      return res.status(200).json({ message: 'Password updated successfully' });
+    } catch (error) {
+      console.error('Error setting new password:', error.message);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  };
+  
+
+
+
+
           //BUSINESS AUTH
 export const businessSignup = async (req, res) => {
   try {
@@ -560,7 +606,7 @@ console.log(newBusiness);
    try {
     const firstName = savedBusiness.personalName.split(/[, ]+/)[0]
    //const url = `${req.protocol}://${req.get("host")}/api/user/verify-business-email?email=${savedBusiness.email}&token=${verifyBusinessToken}`
-  const url = `http://localhost:3000/verified-business-email?token=${verifyBusinessToken}`
+  const url = `https://trackeet-pcu3.vercel.app/verified-business-email?token=${verifyBusinessToken}`
     //const currentDir = path.dirname(new URL(import.meta.url).pathname);
 
     // // Normalize the path to remove any leading slash and avoid path issues on Windows
@@ -1002,3 +1048,43 @@ console.log("Template content loaded successfully");
     });
   
     
+   export const setNewBusinessPassword = async (req, res) => {
+      try {
+        let validatedData = req.body;
+    
+        // Get userId from the token (populated by the `authenticate` middleware)
+        const businessId = req.user.id;
+    
+        // Find the user to verify the former password
+        const business = await Business.findById(businessId).select('+password');
+        if (!business) {
+          return res.status(404).json({ message: 'User not found' });
+        }
+    
+        if(!(await passwordCompare(validatedData.currentPassword, business.password))) {
+          console.log("User PAssword",business.password)
+          return res.status(httpStatus.UNAUTHORIZED).json({
+              message:"Invalid password"
+          
+      });
+        }
+        const hashedPassword = await passwordHash(validatedData.newPassword);
+  
+    
+        // Update the password
+        const updatedBusiness = await Business.findOneAndUpdate(
+          { _id: businessId },
+          { $set: { password: hashedPassword } },
+          { new: true, runValidators: true }
+        );
+    
+        if (!updatedBusiness) {
+          return res.status(500).json({ message: 'Failed to update password' });
+        }
+    
+        return res.status(200).json({ message: 'Password updated successfully' });
+      } catch (error) {
+        console.error('Error setting new password:', error.message);
+        return res.status(500).json({ message: 'Internal server error' });
+      }
+    };
